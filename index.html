@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0507">
+<title>ZOMBI LILE RUNNER</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- HUD buttons -->
+<button id="btnPause" class="hudbtn hidden" aria-label="Pause">II</button>
+<button id="btnMute" class="hudbtn hidden" aria-label="Sound">&#9835;</button>
+
+<!-- Title -->
+<div id="title" class="screen">
+  <div class="title-spacer"></div>
+  <div class="menu">
+    <button id="btnStart" class="big">RUN!</button>
+    <div class="row">
+      <button id="btnLevels" class="small">LEVELS</button>
+      <button id="btnHow" class="small">HOW TO PLAY</button>
+    </div>
+    <div id="bestLine" class="best"></div>
+  </div>
+</div>
+
+<!-- Level select -->
+<div id="levels" class="screen hidden">
+  <h2 class="drip">CHOOSE YOUR RUN</h2>
+  <div id="levelGrid" class="grid"></div>
+  <button id="btnLevelsBack" class="small">BACK</button>
+</div>
+
+<!-- Tutorial overlay -->
+<div id="tutorial" class="screen hidden">
+  <div class="tut">
+    <div class="tut-half left"><div class="tut-icon">&#8679;</div><b>TAP LEFT</b><br>or swipe up<br>= JUMP<br><small>tap again in the air = double jump</small></div>
+    <div class="tut-half right"><div class="tut-icon">&#9876;</div><b>TAP RIGHT</b><br>= SABRE<br><small>1 tap: chop the head off<br>2 taps: cleave in half<br>3 taps: SPIN (needs a full spin meter)</small></div>
+  </div>
+  <div class="tut-bottom"><b>SWIPE DOWN</b> anywhere = SLIDE &nbsp;|&nbsp; Keyboard: <b>Space/&uarr;</b> jump, <b>&darr;/S</b> slide, <b>X/J/Enter</b> sabre, <b>P</b> pause<br>
+  Only cutting the head (or cleaving) kills. Stomping a zombie just staggers it. Big brutes: slide under or cleave.</div>
+  <button id="btnTutGo" class="big">GOT IT</button>
+</div>
+
+<!-- Level intro / complete -->
+<div id="card" class="screen hidden">
+  <div class="card-inner">
+    <div id="cardKicker" class="kicker"></div>
+    <h2 id="cardTitle" class="drip"></h2>
+    <p id="cardText"></p>
+    <button id="btnCard" class="big">GO</button>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="screen hidden">
+  <h2 class="drip">PAUSED</h2>
+  <button id="btnResume" class="big">RESUME</button>
+  <div class="row"><button id="btnQuit" class="small">QUIT TO TITLE</button></div>
+</div>
+
+<!-- Game over -->
+<div id="over" class="screen hidden">
+  <h2 class="drip">YOU GOT BITTEN</h2>
+  <p id="overText"></p>
+  <button id="btnRetryLevel" class="big">TRY THIS LEVEL AGAIN</button>
+  <div class="row"><button id="btnRetry" class="small">RESTART FROM PORT LOUIS</button><button id="btnOverTitle" class="small">TITLE</button></div>
+</div>
+
+<!-- Victory -->
+<div id="victory" class="screen hidden">
+  <h2 class="drip gold">MAURITIUS IS SAVED!</h2>
+  <p id="vicText"></p>
+  <button id="btnVicAgain" class="big">RUN AGAIN</button>
+</div>
+
+<!-- Rotate hint -->
+<div id="rotate" class="hidden">
+  <div class="phone"></div>
+  <p>Turn your phone sideways for the best run</p>
+  <button id="btnRotateOk" class="small">PLAY ANYWAY</button>
+</div>
+
+<script src="js/assets.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/art.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

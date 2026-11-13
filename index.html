@@ -25,7 +25,13 @@
       <button id="btnLevels" class="small">LEVELS</button>
       <button id="btnHow" class="small">HOW TO PLAY</button>
     </div>
+    <div class="row">
+      <button id="btnChal" class="small">DAILY</button>
+      <button id="btnFits" class="small">OUTFITS</button>
+      <button id="btnSets" class="small">SETTINGS</button>
+    </div>
     <div id="bestLine" class="best"></div>
+    <div id="dailyLine" class="best"></div>
   </div>
 </div>
 
@@ -43,7 +49,7 @@
     <div class="tut-half right"><div class="tut-icon">&#9876;</div><b>TAP RIGHT</b><br>= SABRE<br><small>1 tap: chop the head off<br>2 taps: cleave in half<br>3 taps: SPIN (needs a full spin meter)</small></div>
   </div>
   <div class="tut-bottom"><b>SWIPE DOWN</b> anywhere = SLIDE &nbsp;|&nbsp; Keyboard: <b>Space/&uarr;</b> jump, <b>&darr;/S</b> slide, <b>X/J/Enter</b> sabre, <b>P</b> pause<br>
-  Only cutting the head (or cleaving) kills. Stomping a zombie just staggers it. Big brutes: slide under or cleave.</div>
+  Only a cut to the head (or a cleave) kills. Stomping just staggers. Helmets need a cleave. Guns picked up on the run <b>auto-fire</b> (tap-right is still the sabre). Vehicles fire rockets, on tap or automatically. Big brutes and tanks: slide under, cleave, or use a gun.</div>
   <button id="btnTutGo" class="big">GOT IT</button>
 </div>
 
@@ -61,7 +67,35 @@
 <div id="pause" class="screen hidden">
   <h2 class="drip">PAUSED</h2>
   <button id="btnResume" class="big">RESUME</button>
-  <div class="row"><button id="btnQuit" class="small">QUIT TO TITLE</button></div>
+  <div class="row"><button id="btnQuit" class="small">QUIT TO TITLE</button>
+    <button id="btnVibePause" class="small">VIBRATION: ON</button></div>
+</div>
+
+<!-- Daily challenges -->
+<div id="challenges" class="screen hidden">
+  <h2 class="drip">DAILY CHALLENGES</h2>
+  <p id="chalDate" class="kicker"></p>
+  <div id="chalList" class="chal-list"></div>
+  <p class="best" id="chalBank"></p>
+  <button id="btnChalBack" class="small">BACK</button>
+</div>
+
+<!-- Outfits -->
+<div id="outfits" class="screen hidden">
+  <h2 class="drip">OUTFITS</h2>
+  <p class="kicker">Tints for Bojo. Unlock them by playing.</p>
+  <div id="fitGrid" class="fit-grid"></div>
+  <button id="btnFitsBack" class="small">BACK</button>
+</div>
+
+<!-- Settings -->
+<div id="settings" class="screen hidden">
+  <h2 class="drip">SETTINGS</h2>
+  <div class="row" style="margin:2vmin 0">
+    <button id="btnVibe" class="small">VIBRATION: ON</button>
+  </div>
+  <p>Vibration buzzes on hits, big kills and explosions (if your phone supports it).</p>
+  <button id="btnSetsBack" class="small">BACK</button>
 </div>
 
 <!-- Game over -->

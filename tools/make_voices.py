@@ -24,6 +24,13 @@ LINES = [
     dict(event='chop',       text='Ahhhh',             say='Aahhh !',              scale=1.05, pitch=1.03, tempo=0.30),
     dict(event='cleave',     text='Ala to la',         say='Ala to la !',          scale=0.72, pitch=1.07),
     dict(event='spin',       text='Mort ene fois ta',  say='Mort enn fois ta !',   scale=0.76, pitch=1.05),
+    dict(event='weapon',     text='Gete sa!',          say='Geté sa !',            scale=0.70, pitch=1.08),
+    dict(event='vehicle',    text='Anou ale!',         say='Anou allé !',          scale=0.68, pitch=1.10),
+    dict(event='bossIn',     text='Enn gro zombi!',    say='Enn gro zombi !',      scale=0.74, pitch=1.00),
+    dict(event='bossOut',    text='Fini toi!',         say='Fini toi !',           scale=0.68, pitch=1.06),
+    dict(event='hurt',       text='Aie!',              say='Aïe !',                scale=0.52, pitch=1.16),
+    dict(event='lowhp',      text='Atansion!',         say='Atansion !',           scale=0.70, pitch=1.04),
+    dict(event='clear',      text='Bravo!',            say='Bravo !',              scale=0.68, pitch=1.08),
 ]
 
 
@@ -89,10 +96,24 @@ def main():
     rawdir = Path('/tmp/zr-tts/raw2')
     rawdir.mkdir(parents=True, exist_ok=True)
 
+    # Keep already-embedded clips (the original five lines stay bit-identical)
+    # unless --force is passed. New events are always generated.
+    existing = {}
+    voice_js = ROOT / 'js' / 'voice.js'
+    force = '--force' in sys.argv
+    if voice_js.is_file() and not force:
+        import re
+        for m in re.finditer(r"\{\s*event:\s*'([^']+)'\s*,\s*text:\s*'([^']*)'\s*,\s*data:\s*'([^']+)'\s*\}", voice_js.read_text()):
+            existing[m.group(1)] = m.group(3)
+
     entries = []
     for line in LINES:
         raw = rawdir / (line['event'] + '.wav')
         final = outdir / (line['event'] + '.wav')
+        if line['event'] in existing and existing[line['event']].startswith('data:audio'):
+            print('keep', line['event'], '(existing clip)')
+            entries.append((line, existing[line['event']].split(',', 1)[1] if ',' in existing[line['event']] else existing[line['event']]))
+            continue
         print('tts', line['event'], repr(line['say']))
         generate_raw(line, raw)
         process(raw, final, line['pitch'], line.get('tempo', 1.06))
@@ -107,7 +128,7 @@ def main():
     js.append('// ZOMBI LILE RUNNER - hero voice lines (Mauritian Creole, French TTS).')
     js.append('//')
     js.append('// Each entry maps to exactly one game event (do not play a random line).')
-    js.append('//   event: levelStart | jump | chop | cleave | spin')
+    js.append('//   event: levelStart | jump | chop | cleave | spin | weapon | vehicle | bossIn | bossOut | hurt | lowhp | clear')
     js.append('//   text:  the spoken Creole; also used by the speechSynthesis fr-FR fallback')
     js.append('//   data:  loud 22 kHz mono WAV, base64 (works from file://)')
     js.append('//')
@@ -120,7 +141,8 @@ def main():
     js.append('  window.ZR_VOICE_LINES = [')
     for i, (line, b64) in enumerate(entries):
         comma = ',' if i < len(entries) - 1 else ''
-        js.append(f"    {{ event: '{line['event']}', text: {line['text']!r}, data: 'data:audio/wav;base64,{b64}' }}{comma}")
+        payload = b64 if str(b64).startswith('data:') else ('data:audio/wav;base64,' + b64)
+        js.append(f"    {{ event: '{line['event']}', text: {line['text']!r}, data: '{payload}' }}{comma}")
     js.append('  ];')
     js.append('})();')
     dest = ROOT / 'js' / 'voice.js'

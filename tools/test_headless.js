@@ -33,7 +33,7 @@ async function page(b, q, vp) {
       const AU = window.ZRAudio;
       AU.init();
       await new Promise(r => setTimeout(r, 600));
-      const names = ['swing', 'chop', 'cleave', 'spin'];
+      const names = ['swing', 'chop', 'cleave', 'spin', 'pistol', 'shotgun', 'rocket', 'explode'];
       const peaks = await AU.measureSfx(names);
       const ev = AU.voiceEvents();
       const decoded = AU.voiceDecoded();
@@ -44,13 +44,106 @@ async function page(b, q, vp) {
     });
     console.log('AUDIO', JSON.stringify(audio, null, 2));
     if (!audio.ready) errors.push('AudioContext did not start');
-    const need = ['levelStart', 'jump', 'chop', 'cleave', 'spin'];
+    const need = ['levelStart', 'jump', 'chop', 'cleave', 'spin', 'weapon', 'vehicle', 'bossIn', 'bossOut', 'hurt', 'lowhp', 'clear'];
     need.forEach(n => { if (!(audio.ev || []).includes(n)) errors.push('missing voice event ' + n); if (!(audio.decoded || []).includes(n)) errors.push('voice clip not decoded: ' + n); });
     (audio.peaks || []).forEach(r => {
       if (!(r.peak > 0.05)) errors.push('SFX ' + r.name + ' is silent (peak=' + r.peak + ')');
     });
-    if ((audio.peaks || []).length < 4) errors.push('measureSfx returned too few results');
+    if ((audio.peaks || []).length < 8) errors.push('measureSfx returned too few results');
     await p.close();
+  }
+  // 1c. weapons, new zombies, vehicle, outfits, daily challenges, boss phase
+  if (!only || only === 'showcase') {
+    const p = await page(b, '?demo=1&capture=1&level=1');
+    // pistols
+    await p.evaluate(() => {
+      window.__zr.api.teleport(0.12);
+      ['walker', 'sprinter', 'tank'].forEach((t, i) => window.__zr.api.spawnEnemy(t, 240 + i * 80));
+      window.__zr.api.giveWeapon('pistol');
+      return window.__zrAdvance(28, 1 / 30);
+    });
+    await p.screenshot({ path: path.join(OUT, '50_weapons_pistol.png') });
+    // shotgun
+    await p.evaluate(() => {
+      ['walker', 'walker', 'helmet', 'sprinter'].forEach((t, i) => window.__zr.api.spawnEnemy(t, 220 + i * 60));
+      window.__zr.api.giveWeapon('shotgun');
+      return window.__zrAdvance(32, 1 / 30);
+    });
+    await p.screenshot({ path: path.join(OUT, '50_weapons_shotgun.png') });
+    // rocket
+    await p.evaluate(() => {
+      ['tank', 'bloater', 'walker'].forEach((t, i) => window.__zr.api.spawnEnemy(t, 260 + i * 70));
+      window.__zr.api.giveWeapon('rocket');
+      return window.__zrAdvance(36, 1 / 30);
+    });
+    await p.screenshot({ path: path.join(OUT, '50_weapons_rocket.png') });
+    // big sabre
+    await p.evaluate(() => {
+      ['walker', 'helmet', 'leaper'].forEach((t, i) => window.__zr.api.spawnEnemy(t, 200 + i * 70));
+      window.__zr.api.giveWeapon('bigSabre');
+      window.__zr.api.slash();
+      return window.__zrAdvance(18, 1 / 30);
+    });
+    await p.screenshot({ path: path.join(OUT, '50_weapons_sabre.png') });
+    // jeep
+    await p.evaluate(() => {
+      window.__zr.gun = null;
+      ['walker', 'sprinter', 'crawler', 'tank'].forEach((t, i) => window.__zr.api.spawnEnemy(t, 250 + i * 70));
+      window.__zr.api.mountVehicle('jeep');
+      return window.__zrAdvance(36, 1 / 30);
+    });
+    await p.screenshot({ path: path.join(OUT, '70_vehicle_jeep.png') });
+    await p.close();
+
+    // themed zombies on later levels
+    const zshots = [
+      [2, '60_zombies_pereybere.png', ['fish', 'flyer', 'spitter', 'leaper', 'bloater']],
+      [3, '60_zombies_chamarel.png', ['monkey', 'flyer', 'turner', 'leaper']],
+      [5, '60_zombies_flicenflac.png', ['walker', 'bloater', 'spitter', 'sprinter', 'helmet']],
+      [7, '60_zombies_sugarcane.png', ['crawler', 'tank', 'helmet', 'bloater', 'sprinter']]
+    ];
+    for (const [lv, file, types] of zshots) {
+      const pz = await page(b, `?demo=1&capture=1&level=${lv}`);
+      await pz.evaluate((types) => {
+        window.__zr.ai.cd = 99;
+        window.__zr.api.teleport(0.3);
+        types.forEach((t, i) => window.__zr.api.spawnEnemy(t, 240 + i * 100));
+        return window.__zrAdvance(8, 1 / 30);
+      }, types);
+      await pz.screenshot({ path: path.join(OUT, file) });
+      await pz.close();
+    }
+
+    // boss phase 2
+    const pb = await page(b, '?demo=1&capture=1&level=1');
+    let s = await pb.evaluate(() => { window.__zr.api.teleport(0.99); return window.__zrAdvance(40, 1 / 30); });
+    let bg = 0; while ((!s.boss || s.boss === 'dead') && s.mode === 'play' && bg++ < 40) s = await pb.evaluate(() => window.__zrAdvance(15, 1 / 30));
+    s = await pb.evaluate(() => {
+      if (window.__zr.boss && window.__zr.boss.alive) window.__zr.boss.hp = Math.floor(window.__zr.boss.max * 0.55);
+      window.__zrAdvance(28, 1 / 30);
+      window.__zr.texts = [];
+      return window.__zrAdvance(8, 1 / 30);
+    });
+    await pb.screenshot({ path: path.join(OUT, '73_boss_phase.png') });
+    console.log('boss phase shot', s.boss, 'phase', s.bossPhase, 'hp', s.bossHp);
+    if (!(s.bossPhase >= 2)) errors.push('boss phase 2 did not trigger (phase=' + s.bossPhase + ')');
+    await pb.close();
+
+    // outfits + daily UI
+    const pu = await page(b, '');
+    await sleep(200);
+    await pu.evaluate(() => {
+      const G = window.__zr;
+      G.done = { 1: true, 5: true, 8: true };
+      G.bank = 2000; G.chalTotal = 5; G.runCoinsMax = 600;
+      G.api.openOutfits();
+    });
+    await sleep(200);
+    await pu.screenshot({ path: path.join(OUT, '71_outfits.png') });
+    await pu.evaluate(() => window.__zr.api.openChallenges());
+    await sleep(200);
+    await pu.screenshot({ path: path.join(OUT, '72_challenges.png') });
+    await pu.close();
   }
   // 2. every level in demo/capture mode
   for (let i = 1; i <= 8; i++) {
@@ -68,7 +161,7 @@ async function page(b, q, vp) {
     console.log('boss', i, s.boss, 'hp', s.bossHp, 'state', s.bossState);
     if (!s.boss) errors.push('level ' + i + ' boss did not spawn');
     // run the rest of the level / beat the boss
-    let guard = 0; while (s.mode === 'play' && s.level === i && guard++ < 260) s = await p.evaluate(() => window.__zrAdvance(30, 1 / 30));
+    let guard = 0; while (s.mode === 'play' && s.level === i && guard++ < 360) s = await p.evaluate(() => window.__zrAdvance(30, 1 / 30));
     console.log('level', i, 'done ->', JSON.stringify(s));
     await p.close();
   }
@@ -78,7 +171,7 @@ async function page(b, q, vp) {
     await p.evaluate(() => { window.__zr.api.teleport(0.97); return window.__zrAdvance(60, 1 / 30); });
     let s; for (let k = 0; k < 6; k++) s = await p.evaluate(() => window.__zrAdvance(20, 1 / 30));
     await p.screenshot({ path: path.join(OUT, '30_boss_gran_zombi.png') });
-    let guard = 0; while (s.mode === 'play' && guard++ < 200) s = await p.evaluate(() => window.__zrAdvance(30, 1 / 30));
+    let guard = 0; while (s.mode === 'play' && guard++ < 320) s = await p.evaluate(() => window.__zrAdvance(30, 1 / 30));
     console.log('boss ->', JSON.stringify(s));
     await sleep(200); await p.screenshot({ path: path.join(OUT, '32_victory.png') });
     await p.close();

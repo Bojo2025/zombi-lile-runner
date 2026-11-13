@@ -7,7 +7,7 @@ canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 10
 .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2vmin; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   text-align: center; z-index: 5; }
-#levels, #pause, #over, #victory, #card, #tutorial { background: radial-gradient(ellipse at center, rgba(30,6,8,.80), rgba(5,2,3,.94)); }
+#levels, #pause, #over, #victory, #card, #tutorial, #challenges, #outfits, #settings { background: radial-gradient(ellipse at center, rgba(30,6,8,.80), rgba(5,2,3,.94)); }
 #title { justify-content: flex-end; padding-bottom: 5vh; background: transparent; pointer-events: none; }
 #title .menu { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 1.6vmin; }
 .title-spacer { flex: 1; }
@@ -48,3 +48,22 @@ p { max-width: 80vw; font-size: clamp(14px, 3vmin, 22px); line-height: 1.45; mar
 #title.dim .menu { opacity: 0; pointer-events: none; }
 #title .menu { transition: opacity .6s; }
 @media (min-aspect-ratio: 23/20) { #title { align-items: center; padding-left: 36vw; } }
+
+.chal-list { display: flex; flex-direction: column; gap: 1.6vmin; width: min(92vw, 640px); max-height: 58vh; overflow: auto; }
+.chal { text-align: left; background: rgba(120,10,14,.45); border: 2px solid rgba(255,80,80,.35); border-radius: 12px; padding: 1.6vmin 2vmin; }
+.chal h3 { margin: 0 0 .3em; font-size: clamp(14px, 3vmin, 20px); letter-spacing: .06em; color: #ffcc3a; }
+.chal p { margin: 0; font-size: clamp(12px, 2.5vmin, 16px); max-width: none; }
+.chal .bar { margin-top: .6em; height: 8px; background: rgba(0,0,0,.45); border-radius: 4px; overflow: hidden; }
+.chal .bar > span { display: block; height: 100%; background: #e01b24; }
+.chal.done { border-color: #ffcc3a; background: rgba(80,50,10,.45); }
+.chal.done h3:after { content: '  DONE'; color: #9cff6a; }
+.fit-grid { display: grid; grid-template-columns: repeat(3, minmax(110px, 22vw)); gap: 1.6vmin; width: min(92vw, 720px); }
+.fit-card { padding: 1.4vmin; border-radius: 12px; background: rgba(120,10,14,.5); border: 2px solid rgba(255,80,80,.35); font-weight: 800; font-size: clamp(11px, 2.3vmin, 16px); line-height: 1.3; }
+.fit-card.locked { opacity: .4; }
+.fit-card.on { border-color: #ffcc3a; box-shadow: 0 0 16px rgba(255,200,60,.35); }
+.fit-swatch { height: 36px; border-radius: 8px; margin-bottom: 8px; border: 2px solid #14100e; }
+.fit-card small { display: block; font-weight: 400; opacity: .85; margin-top: 4px; }
+@media (max-aspect-ratio: 1/1) { .fit-grid { grid-template-columns: repeat(2, minmax(110px, 40vw)); } }
+
+/* opaque menus */
+#challenges, #outfits, #settings { background: radial-gradient(ellipse at center, rgba(18,4,6,.97), rgba(4,1,2,.995)); }

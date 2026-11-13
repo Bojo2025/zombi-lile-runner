@@ -155,6 +155,28 @@
       case 'over': [330, 311, 294, 220].forEach(function (f, k) { osc('sawtooth', f, t + k * 0.28, 0.4, 0.22, null, { lp: 900, send: 0.4 }); }); break;
       case 'click': osc('square', 660, t, 0.04, 0.12, null, { lp: 3000 }); break;
       case 'thunder': noise(t, 2.2, 0.7, 'lowpass', 220, null, { a: 0.05, d: 1.5, s: 0.05 }); break;
+      case 'pistol':
+        noise(t, 0.07, 0.85, 'lowpass', 1800); osc('square', 420, t, 0.05, 0.55, null, { to: 90, lp: 2400 });
+        osc('sine', 180, t, 0.08, 0.45, null, { to: 50 }); A.duck(0.55, 0.08, 0.1); break;
+      case 'shotgun':
+        noise(t, 0.22, 1.05, 'lowpass', 1400); noise(t, 0.12, 0.7, 'bandpass', 900, null, { q: 0.6 });
+        osc('sine', 90, t, 0.16, 0.7, null, { to: 30 }); osc('square', 200, t, 0.08, 0.4, null, { to: 60, lp: 800 });
+        A.duck(0.8, 0.16, 0.16); break;
+      case 'rocket':
+        noise(t, 0.18, 0.45, 'bandpass', 600, null, { fTo: 300, q: 0.8 });
+        osc('sawtooth', 240, t, 0.35, 0.35, null, { to: 80, lp: 900 });
+        osc('sine', 140, t, 0.3, 0.25, null, { to: 50 }); break;
+      case 'explode':
+        osc('sine', 70, t, 0.45, 0.95, null, { to: 22 }); osc('sawtooth', 55, t, 0.5, 0.55, null, { to: 20, lp: 400 });
+        noise(t, 0.55, 1.05, 'lowpass', 500); noise(t + 0.04, 0.3, 0.55, 'highpass', 2000);
+        A.duck(0.9, 0.35, 0.28); break;
+      case 'spit':
+        noise(t, 0.2, 0.4, 'bandpass', 1200, null, { q: 3 }); osc('square', 260, t, 0.16, 0.18, null, { to: 120, lp: 1400 }); break;
+      case 'armor':
+        osc('square', 620, t, 0.08, 0.35, null, { to: 280, lp: 3000 }); osc('triangle', 880, t, 0.1, 0.22, null, { to: 400 });
+        noise(t, 0.08, 0.3, 'highpass', 3000); break;
+      case 'engine':
+        osc('sawtooth', 70, t, 0.18, 0.16, null, { to: 90, lp: 400 }); noise(t, 0.18, 0.12, 'lowpass', 250); break;
     }
   };
   A.moan = function (pitch) {
@@ -204,15 +226,19 @@
     g.gain.value = vol || 1;
     s.buffer = buf; s.connect(g); g.connect(dest || voiceBus); s.start(0);
   }
-  // Play the line mapped to this event. Jump uses a tiny cooldown; other lines won't overlap.
+  // Play the line mapped to this event. Cooldowns stop spam (hurt / low-health / jump especially).
+  var VOICE_CD = { jump: 0.16, hurt: 1.5, lowhp: 6, chop: 0.5, cleave: 0.55, spin: 0.9,
+    weapon: 1.2, vehicle: 1.2, bossIn: 3, bossOut: 3, clear: 3, levelStart: 3 };
   A.voice = function (event) {
     if (!event) return;
     if (!ctx) A.init();
     if (!ctx || muted) return;
     var now = ctx.currentTime;
-    var cd = event === 'jump' ? 0.14 : 0.35;
+    var cd = VOICE_CD[event] != null ? VOICE_CD[event] : 0.45;
     if (now - (lastVoiceAt[event] || -99) < cd) return;
-    if (event !== 'jump' && now - (lastVoiceAt._any || -99) < 0.2) return;
+    // hurt / lowhp may talk over a recent jump; other lines share a short global gap
+    var gGap = (event === 'hurt' || event === 'lowhp') ? 0.12 : (event === 'jump' ? 0 : 0.32);
+    if (gGap && now - (lastVoiceAt._any || -99) < gGap) return;
     lastVoiceAt[event] = now;
     if (event !== 'jump') lastVoiceAt._any = now;
     var line = null, lines = window.ZR_VOICE_LINES || [];

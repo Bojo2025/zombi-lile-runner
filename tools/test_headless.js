@@ -26,6 +26,32 @@ async function page(b, q, vp) {
     await p.click('#btnTutGo'); await sleep(200); await p.click('#btnLevels'); await sleep(300); await p.screenshot({ path: path.join(OUT, '03_level_select.png') });
     await p.close();
   }
+  // 1b. audio: confirm slash SFX actually render non-silent audio
+  if (!only || only === 'audio' || only === 'title') {
+    const p = await page(b, '');
+    const audio = await p.evaluate(async () => {
+      const AU = window.ZRAudio;
+      AU.init();
+      await new Promise(r => setTimeout(r, 600));
+      const names = ['swing', 'chop', 'cleave', 'spin'];
+      const peaks = await AU.measureSfx(names);
+      const ev = AU.voiceEvents();
+      const decoded = AU.voiceDecoded();
+      // fire the gameplay hooks so we know they are callable
+      AU.sfx('swing'); AU.sfx('chop'); AU.sfx('cleave'); AU.sfx('spin');
+      AU.voice('levelStart'); AU.voice('jump'); AU.voice('chop'); AU.voice('cleave'); AU.voice('spin');
+      return { peaks, ev, decoded, ready: AU.ready() };
+    });
+    console.log('AUDIO', JSON.stringify(audio, null, 2));
+    if (!audio.ready) errors.push('AudioContext did not start');
+    const need = ['levelStart', 'jump', 'chop', 'cleave', 'spin'];
+    need.forEach(n => { if (!(audio.ev || []).includes(n)) errors.push('missing voice event ' + n); if (!(audio.decoded || []).includes(n)) errors.push('voice clip not decoded: ' + n); });
+    (audio.peaks || []).forEach(r => {
+      if (!(r.peak > 0.05)) errors.push('SFX ' + r.name + ' is silent (peak=' + r.peak + ')');
+    });
+    if ((audio.peaks || []).length < 4) errors.push('measureSfx returned too few results');
+    await p.close();
+  }
   // 2. every level in demo/capture mode
   for (let i = 1; i <= 8; i++) {
     if (only && only !== 'levels' && only !== String(i)) continue;
@@ -34,8 +60,15 @@ async function page(b, q, vp) {
     await p.screenshot({ path: path.join(OUT, `1${i}_level${i}_${NAMES[i - 1]}.png`) });
     s = await p.evaluate(() => { window.__zr.api.teleport(0.55); return window.__zrAdvance(70, 1 / 30); });
     await p.screenshot({ path: path.join(OUT, `1${i}_level${i}_${NAMES[i - 1]}_b.png`) });
-    // run the rest of the level fast to check for runtime errors
-    let guard = 0; while (s.mode === 'play' && s.level === i && guard++ < 220) s = await p.evaluate(() => window.__zrAdvance(30, 1 / 30));
+    // spawn the end-of-level boss and snapshot it
+    s = await p.evaluate(() => { window.__zr.api.teleport(0.99); return window.__zrAdvance(40, 1 / 30); });
+    let bg = 0; while ((!s.boss || s.boss === 'dead') && s.mode === 'play' && bg++ < 40) s = await p.evaluate(() => window.__zrAdvance(15, 1 / 30));
+    if (s.boss && s.boss !== 'dead') s = await p.evaluate(() => window.__zrAdvance(55, 1 / 30));
+    await p.screenshot({ path: path.join(OUT, `2${i}_boss${i}_${NAMES[i - 1]}.png`) });
+    console.log('boss', i, s.boss, 'hp', s.bossHp, 'state', s.bossState);
+    if (!s.boss) errors.push('level ' + i + ' boss did not spawn');
+    // run the rest of the level / beat the boss
+    let guard = 0; while (s.mode === 'play' && s.level === i && guard++ < 260) s = await p.evaluate(() => window.__zrAdvance(30, 1 / 30));
     console.log('level', i, 'done ->', JSON.stringify(s));
     await p.close();
   }

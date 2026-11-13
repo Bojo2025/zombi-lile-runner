@@ -43,13 +43,13 @@
     var endX = L.length * PXM, segs = [], x = -800, y = GROUND, gapP = Math.min(0.85, L.gaps * 2.2);
     var spd = L.speed;
     while (x < endX + 4000) {
-      var len = L.terrain === 'boats' ? R(900, 1500) : gapP > 0 ? R(600, 1200) : 30000;
-      if (L.boss && x > endX - 600) len = 6000;
+      var arena = x > endX - 800;
+      var len = arena ? 7000 : (L.terrain === 'boats' ? R(900, 1500) : gapP > 0 ? R(600, 1200) : 30000);
       var slope = 0;
-      if (L.terrain === 'climb' && x > 300) slope = [0, -0.18, -0.3, -0.42, -0.3][Math.floor(R(0, 5))];
-      segs.push({ x0: x, x1: x + len, y0: y, y1: y + slope * len, boat: L.terrain === 'boats', ph: R(0, 6) });
+      if (!arena && L.terrain === 'climb' && x > 300) slope = [0, -0.18, -0.3, -0.42, -0.3][Math.floor(R(0, 5))];
+      segs.push({ x0: x, x1: x + len, y0: y, y1: y + slope * len, boat: L.terrain === 'boats' && !arena, ph: R(0, 6) });
       y += slope * len; x += len;
-      if (x > 1300 && x < endX - 500 && rnd() < gapP) x += (L.terrain === 'boats' ? R(140, 200) : R(115, 175)) * (spd / 360);
+      if (!arena && x > 1300 && x < endX - 800 && rnd() < gapP) x += (L.terrain === 'boats' ? R(140, 200) : R(115, 175)) * (spd / 360);
     }
     var ents = [], obs = [], pick = [], gaps = [];
     for (var i = 1; i < segs.length; i++) if (segs[i].x0 > segs[i - 1].x1 + 1) gaps.push([segs[i - 1].x1, segs[i].x0]);
@@ -122,7 +122,7 @@
     G.ai = { q: [], cd: 0 }; G.lightning = 0; G.hintT = 7; G.bodyHint = false;
     if (AU.ready()) { AU.setMusic('run', idx / 8); AU.setAmbience(G.L.amb); }
     hideAll();
-    if (DEMO) { G.mode = 'play'; showHud(true); return; }
+    if (DEMO) { G.mode = 'play'; showHud(true); AU.init(); if (AU.ready()) AU.voice('levelStart'); return; }
     G.mode = 'card'; showHud(false);
     $('cardKicker').textContent = 'LEVEL ' + (idx + 1) + ' / 8';
     $('cardTitle').textContent = G.L.name.toUpperCase();
@@ -169,8 +169,8 @@
   function jump() {
     var h = G.hero; if (G.mode !== 'play') return;
     if (h.slideT > 0) h.slideT = 0;
-    if (h.grounded || h.airT < 0.1) { h.vy = -930; h.grounded = false; h.jumps = 1; h.hold = true; h.holdT = 0; AU.sfx('jump'); dust(h.x, h.y, 6); }
-    else if (h.jumps < 2) { h.vy = -840; h.jumps = 2; h.hold = true; h.holdT = 0; h.flipT = 0.0001; AU.sfx('djump'); ring(h.x, h.y - 20); }
+    if (h.grounded || h.airT < 0.1) { h.vy = -930; h.grounded = false; h.jumps = 1; h.hold = true; h.holdT = 0; AU.sfx('jump'); AU.voice('jump'); dust(h.x, h.y, 6); }
+    else if (h.jumps < 2) { h.vy = -840; h.jumps = 2; h.hold = true; h.holdT = 0; h.flipT = 0.0001; AU.sfx('djump'); AU.voice('jump'); ring(h.x, h.y - 20); }
   }
   function release() { if (G.hero) G.hero.hold = false; }
   function slide() {
@@ -182,7 +182,7 @@
     var h = G.hero; if (G.mode !== 'play') return;
     if (G.t - h.lastTap < 0.36) h.chain++; else h.chain = 1;
     h.lastTap = G.t;
-    if (h.chain >= 3) { if (G.spin >= 100) { doSpin(); h.chain = 0; return; } popText(h.x + 40, h.y - 190, 'SPIN NEEDS A FULL METER', '#ffd0a0', 0.8); doCleave(); return; }
+    if (h.chain >= 3) { if (G.spin >= 100) { doSpin(); h.chain = 0; return; } if (!DEMO && (!G.spinHint || G.t - G.spinHint > 2.5)) { G.spinHint = G.t; popText(h.x + 40, h.y - 190, 'SPIN NEEDS A FULL METER', '#ffd0a0', 0.8); } doCleave(); return; }
     if (h.chain === 2) return doCleave();
     doSlash();
   }
@@ -196,7 +196,7 @@
       case 'monkey': return [x - 26, y - 56, x + 24, y - 4];
       case 'fish': return [x - 28, y - 18, x + 30, y + 18];
       case 'boulder': return [x - 30, y - 60, x + 30, y];
-      case 'boss': return [x - 70, y - 350, x + 60, y];
+      case 'boss': return bossBox(e);
       default: return [x - 24, y - 155, x + 22, y];
     }
   }
@@ -207,7 +207,7 @@
       case 'monkey': return [e.x - 18, e.y - 42];
       case 'fish': return [e.x - 16, e.y];
       case 'boulder': return [e.x, e.y - 30];
-      case 'boss': return [e.x - 30, e.y - 300];
+      case 'boss': return bossHead(e);
       default: return [e.x - 14, e.y - 136];
     }
   }
@@ -235,7 +235,8 @@
     var h = G.hero; h.atype = 'spin'; h.at = 0; h.adur = 0.55; G.spin = 0; AU.sfx('spin'); G.shake = 8; G.flash = 0.25;
     var n = 0, cxh = h.x, cyh = h.y - 70;
     if (G.boss && Math.abs(G.boss.x - h.x) < 300) hitBoss(3);
-    G.ents.forEach(function (e) { if (!canHit(e)) return; var b = ebox(e), ex = (b[0] + b[2]) / 2, ey = (b[1] + b[3]) / 2; if (Math.hypot(ex - cxh, (ey - cyh) * 1.3) < 270) { n++; if (n % 2 && e.type !== 'boulder' && e.type !== 'fish') decap(e, null, 200); else cleave(e, 200); } });
+    G.ents.forEach(function (e) { if (!canHit(e)) return; var b = ebox(e), ex = (b[0] + b[2]) / 2, ey = (b[1] + b[3]) / 2; if (Math.hypot(ex - cxh, (ey - cyh) * 1.3) < 270) { n++; if (n % 2 && e.type !== 'boulder' && e.type !== 'fish') decap(e, null, 200, true); else cleave(e, 200, true); } });
+    AU.voice('spin');
     popText(h.x + 30, h.y - 220, n > 0 ? 'SPIN STORM x' + n + '!' : 'SPIN STORM!', '#ffcc3a', 1.2, 1.4);
   }
   function addKill(base) {
@@ -246,9 +247,9 @@
     if (G.spin < 100) G.spinAnnounced = false;
     return mult;
   }
-  function decap(e, txt, base) {
+  function decap(e, txt, base, silent) {
     var hp = headPt(e), mult = addKill(base || 100);
-    AU.sfx('chop');
+    AU.sfx('chop'); if (!silent) AU.voice('chop');
     if (e.type === 'walker' || e.type === 'brute' || e.type === 'turner' || e.type === 'boss') {
       e.headless = true; e.alive = false; e.state = 'dying'; e.dieT = 0;
       var sc = e.type === 'brute' ? 1.32 : e.type === 'boss' ? 2.3 : 1;
@@ -262,7 +263,8 @@
   }
   function cleave(e, base) {
     if (e.type === 'boulder') { e.alive = false; e.dead = true; rocks(e.x, e.y - 30); AU.sfx('thud'); G.score += 50; popText(e.x, e.y - 90, 'SMASH!', '#ddd', 0.7); return; }
-    var mult = addKill(base || 150); AU.sfx('cleave'); AU.sfx('splat');
+    var silent = arguments[2];
+    var mult = addKill(base || 150); AU.sfx('cleave'); AU.sfx('splat'); if (!silent) AU.voice('cleave');
     splitPieces(e, 'half'); e.alive = false; e.dead = true;
     var b = ebox(e); blood((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, 40, 1.3); gibs((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, 7);
     popText(e.x, b[1] - 30, 'CLEAVED!' + (mult > 1 ? ' x' + mult : ''), '#ff6a5a', 0.9);
@@ -289,19 +291,45 @@
         vx: (i === 0 ? R(60, 200) : R(260, 420)) + G.speed * 0.3, vy: R(-520, -300), rot: 0, vr: (i === 0 ? -1 : 1) * R(2, 5), life: 3.5, bounces: 0, rimg: s.rc, cut: cut });
     });
   }
-  function bossInReach(rx1) { var b = G.boss; return b && b.alive && b.x - 80 < rx1; }
+  function bossDef() { return (G.L && G.L.boss) || { form: 'granzombi', name: 'GRAN ZOMBI', title: 'THE GRAN ZOMBI RISES!', death: 'GRAN ZOMBI DECAPITATED!', hp: 14, minion: 'walker', proj: 'head' }; }
+  function bossScale(form) { return { docker: 2.15, shark: 1, gorilla: 2.35, rock: 2.4, bloater: 2.2, captain: 2.25, harvester: 2.2, granzombi: 2.45 }[form] || 2.3; }
+  function bossBox(b) {
+    if (b.form === 'shark') return [b.x - 200, b.y - 170, b.x + 180, b.y + 16];
+    var sc = b.scale || 2.3;
+    return [b.x - 50, b.y - 155 * sc, b.x + 50, b.y];
+  }
+  function bossHead(b) {
+    if (b.form === 'shark') return [b.x - 150, b.y - 90];
+    var sc = b.scale || 2.3;
+    return [b.x - 30, b.y - 136 * sc];
+  }
+  function bossInReach(rx1) { var b = G.boss; if (!b || !b.alive) return false; var box = bossBox(b); return box[0] < rx1 + 140 && box[2] > G.hero.x - 40; }
   function hitBoss(dmg) {
-    var b = G.boss; if (!b || !b.alive || b.hurtT > 0) return;
-    b.hp -= dmg; b.hurtT = 0.25; b.x += 60 + dmg * 30; b.state = 'back'; b.timer = 0.5; G.shake = 8; G.hitstop = 0.06;
-    AU.sfx('chop'); blood(b.x - 40, b.y - 220, 20 + dmg * 8, 1); G.score += 120 * dmg;
-    popText(b.x - 40, b.y - 380, ['', 'HIT!', 'CLEAVE!', 'SPIN!'][dmg] + ' -' + dmg, '#ff8a6a', 0.8);
-    if (b.hp <= 0) {
-      b.alive = false; b.headless = true; b.state = 'dying'; b.dieT = 0; G.bossDone = 3.2; G.score += 5000; addKill(500);
-      var hp = [b.x - 30, b.y - 300];
-      G.pieces.push({ kind: 'head', z: b, sc: 2.3, x: hp[0], y: hp[1], vx: 380, vy: -980, rot: 0, vr: 9, life: 5, bounces: 0 });
-      blood(hp[0], hp[1] + 30, 90, 1.8); AU.sfx('roar'); G.flash = 0.6; G.shake = 18;
-      popText(b.x - 60, b.y - 420, 'GRAN ZOMBI DECAPITATED!', '#ffcc3a', 2.5, 1.6);
+    var b = G.boss; if (!b || !b.alive || b.hurtT > 0 || b.state === 'dying') return;
+    var hp = bossHead(b);
+    if (b.stag <= 0) {
+      b.stagNeed = (b.stagNeed || 0) + dmg; b.hurtT = 0.06; G.shake = 6; AU.sfx('thud'); spark(hp[0], hp[1]);
+      if (b.stagNeed >= 2) {
+        b.stag = 1.55; b.stagNeed = 0; b.state = 'stagger'; b.timer = 1.55;
+        popText(b.x - 40, b.y - 380, 'STAGGERED! CHOP THE HEAD!', '#ffcc3a', 1.2);
+        AU.sfx('roar');
+      } else popText(b.x - 40, b.y - 360, 'STAGGER HIM!', '#ffe0a0', 0.7);
+      return;
     }
+    b.hp -= dmg; b.hurtT = 0.1; G.shake = 8; G.hitstop = 0.03;
+    AU.sfx('chop'); blood(hp[0], hp[1], 20 + dmg * 8, 1); G.score += 120 * dmg;
+    popText(b.x - 40, b.y - 380, ['', 'HEAD CHOP!', 'CLEAVE!', 'SPIN!'][dmg] + ' -' + dmg, '#ff8a6a', 0.8);
+    AU.voice(dmg === 1 ? 'chop' : dmg === 2 ? 'cleave' : 'spin');
+    if (b.hp <= 0) killBoss();
+  }
+  function killBoss() {
+    var b = G.boss, d = bossDef();
+    b.alive = false; b.headless = true; b.state = 'dying'; b.dieT = 0; G.bossDone = 3.4;
+    G.score += 2000 + G.idx * 500; addKill(500);
+    var hp = bossHead(b), sc = b.form === 'shark' ? 2.6 : (b.scale || 2.3);
+    G.pieces.push({ kind: 'head', z: b, sc: sc, x: hp[0], y: hp[1], vx: 380, vy: -980, rot: 0, vr: 9, life: 5, bounces: 0 });
+    blood(hp[0], hp[1] + 30, 90, 1.8); AU.sfx('roar'); G.flash = 0.6; G.shake = 18;
+    popText(b.x - 80, b.y - 420, d.death, '#ffcc3a', 2.5, 1.6);
   }
   function hurt(src) {
     var h = G.hero; if (h.invuln > 0) return;
@@ -376,8 +404,7 @@
     G.camY = lerp(G.camY, ref - GROUND, Math.min(1, dt * 3));
     updateEnemies(dt); updateObstacles(); updatePickups(dt); updateBoss(dt); updateFx(dt);
     if (G.mode !== 'play') return;
-    if (!G.finished && !L.boss && h.x >= G.endX) levelComplete();
-    if (L.boss && !G.boss && h.x >= G.endX && !G.finished) spawnBoss();
+    if (!G.finished && !G.boss && !G.bossDone && h.x >= G.endX) spawnBoss();
     if (G.bossDone > 0) { G.bossDone -= dt; if (G.bossDone <= 0 && !G.finished) levelComplete(); }
     if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 40);
     if (G.flash > 0) G.flash -= dt;
@@ -463,40 +490,131 @@
   }
   // ---------- BOSS ----------
   function spawnBoss() {
-    var h = G.hero;
-    G.boss = { type: 'boss', x: h.x + W * 0.75, y: GROUND, alive: true, hp: 14, max: 14, phase: 0, seed: 77, skin: '#5f7a52', outfit: { shirt: '#7a1010', pants: '#2a2a30', tags: '', kind: 'city' }, head: 'zHead2', state: 'enter', timer: 0, hurtT: 0, stag: 0, throwT: 3, dieT: 0 };
+    var h = G.hero, d = bossDef(), form = d.form;
+    G.ents.forEach(function (e) { if (e.x > h.x - 80) { e.alive = false; e.dead = true; } });
+    G.obs = G.obs.filter(function (o) { return o.x < h.x - 20; });
+    var outfits = {
+      docker: { shirt: '#e9e4d6', pants: '#2c2f38', tags: 'stripes cap', kind: 'city' },
+      shark: { shirt: '#skin', pants: '#skin', tags: 'trunks', kind: 'swim' },
+      gorilla: { shirt: '#skin', pants: '#skin', tags: '', kind: 'hiker' },
+      rock: { shirt: '#6b625a', pants: '#4a4640', tags: '', kind: 'hiker' },
+      bloater: { shirt: '#e85d8a', pants: '#e9d9b4', tags: 'hawaii hat camera', kind: 'tourist' },
+      captain: { shirt: '#2a2030', pants: '#2e3f5c', tags: 'stripes', kind: 'fisher' },
+      harvester: { shirt: '#7d3b32', pants: '#4b4537', tags: 'plaid straw', kind: 'cane' },
+      granzombi: { shirt: '#7a1010', pants: '#2a2a30', tags: '', kind: 'city' }
+    };
+    var skins = { docker: '#6f8a66', shark: '#4a6a52', gorilla: '#3a3028', rock: '#7a7568', bloater: '#8a9a70', captain: '#5f7a52', harvester: '#6f8a4a', granzombi: '#5f7a52' };
+    G.boss = { type: 'boss', form: form, name: d.name, death: d.death, minion: d.minion, proj: d.proj,
+      x: h.x + W * 0.72, y: groundAt(h.x + 80) || GROUND, alive: true, hp: d.hp, max: d.hp, phase: 0, seed: 77 + G.idx * 13,
+      skin: skins[form] || '#5f7a52', outfit: outfits[form] || outfits.granzombi, head: 'zHead2',
+      state: 'enter', timer: 0, hurtT: 0, stag: 0, stagNeed: 0, throwT: 1.6, dieT: 0,
+      scale: bossScale(form), atk: 'charge', tele: '!', dodge: 'jump', hit: false };
     AU.sfx('roar'); AU.setMusic('boss'); G.shake = 14;
-    popText(h.x + 200, h.y - 300, 'THE GRAN ZOMBI RISES!', '#ff3a3a', 2.2, 1.5);
+    popText(h.x + 160, h.y - 210, d.title, '#ff3a3a', 1.5, 1.15);
+  }
+  function pickBossAtk(b) {
+    var pool = ['charge', 'slam', 'throw', 'summon'];
+    var next = pool[Math.floor(rnd() * pool.length)];
+    if (next === b.atk) next = pool[(pool.indexOf(next) + 1 + Math.floor(rnd() * 2)) % pool.length];
+    b.atk = next;
+    if (next === 'charge') { b.dodge = (b.form === 'shark' || b.form === 'gorilla' || b.form === 'rock') ? 'jump' : 'slide'; b.tele = b.dodge === 'slide' ? 'SLIDE!' : 'JUMP!'; }
+    else if (next === 'slam') { b.dodge = 'jump'; b.tele = 'JUMP!'; }
+    else if (next === 'throw') { b.dodge = rnd() < 0.4 ? 'slide' : 'jump'; b.tele = b.dodge === 'slide' ? 'SLIDE!' : 'JUMP!'; }
+    else { b.dodge = 'jump'; b.tele = '!'; }
   }
   function updateBoss(dt) {
     var b = G.boss, h = G.hero; if (!b) return;
-    b.phase += dt * 2.4; b.y = groundAt(b.x) || GROUND; if (b.hurtT > 0) b.hurtT -= dt;
-    if (!b.alive) { b.dieT += dt; if (b.dieT < 1.5) for (var i = 0; i < 3; i++) G.parts.push({ k: 'blood', x: b.x - 14, y: b.y - 250, vx: R(-120, 160), vy: R(-800, -450), r: R(3, 7), life: 1.2, max: 1.2, col: '#c3141c' }); return; }
-    var d = b.x - h.x; b.timer -= dt;
+    b.phase += dt * 2.4; var gy = groundAt(b.x) || GROUND; if (b.form !== 'shark' || b.state !== 'charge') b.y = gy;
+    if (b.hurtT > 0) b.hurtT -= dt;
+    var d = b.x - h.x;
+    if (b.stag > 0) { b.stag -= dt; if (d > 170) b.x -= Math.min(240 * dt, d - 160); d = b.x - h.x; if (b.stag <= 0 && b.alive && b.state === 'stagger') { b.state = 'back'; b.timer = 0.35; } }
+    if (!b.alive) { b.dieT += dt; if (b.dieT < 1.8) for (var i = 0; i < 4; i++) G.parts.push({ k: 'blood', x: bossHead(b)[0], y: bossHead(b)[1], vx: R(-120, 160), vy: R(-800, -450), r: R(3, 7), life: 1.2, max: 1.2, col: '#c3141c' }); return; }
+    b.timer -= dt;
+    var rage = 1 + (1 - b.hp / b.max) * 0.7 + G.idx * 0.06;
     switch (b.state) {
-      case 'enter': b.x -= 90 * dt; if (d < 520) { b.state = 'walk'; AU.sfx('roar'); } break;
-      case 'walk': b.x -= (70 + (b.max - b.hp) * 6) * dt; b.throwT -= dt;
-        if (b.throwT <= 0 && d > 300) { b.throwT = R(2.2, 3.6); bossThrow(); }
-        if (d < 200) { b.state = 'windup'; b.timer = 0.75; AU.sfx('moan', 0.1); } break;
-      case 'windup': if (b.timer <= 0) { b.state = 'swipe'; b.timer = 0.3; AU.sfx('cleave'); G.shake = 10; } break;
-      case 'swipe': if (d < 260 && h.slideT <= 0 && !b.hit) { b.hit = true; hurt(b); } if (b.timer <= 0) { b.state = 'recover'; b.timer = 0.7; b.hit = false; } break;
-      case 'recover': if (b.timer <= 0) { b.state = 'back'; b.timer = 0.6; } break;
-      case 'back': b.x += 260 * dt; if (b.timer <= 0 || d > 560) b.state = 'walk'; break;
+      case 'enter': b.x -= 110 * dt; if (d < 540) { b.state = 'walk'; b.timer = 0.4; AU.sfx('roar'); } break;
+      case 'walk': b.x -= (80 + (b.max - b.hp) * 6) * dt;
+        if (d > 260 && b.timer <= 0) b.timer = 0.2;
+        if (b.timer <= 0 && d <= 260) { pickBossAtk(b); b.state = 'windup'; b.timer = Math.max(0.4, 0.75 / rage); AU.sfx('moan', 0.1); popText(b.x - 40, b.y - 360, b.tele, '#ffd0a0', 0.7); }
+        if (d < 150) { pickBossAtk(b); b.atk = 'charge'; b.dodge = b.dodge || 'slide'; b.state = 'windup'; b.timer = 0.35; } break;
+      case 'windup':
+        if (b.timer <= 0) {
+          if (b.atk === 'charge') { b.state = 'charge'; b.timer = 0.55; b.hit = false; AU.sfx('roar'); G.shake = 8; }
+          else if (b.atk === 'slam') { b.state = 'slam'; b.timer = 0.4; bossSlam(); }
+          else if (b.atk === 'throw') { b.state = 'throw'; b.timer = 0.35; bossThrow(b.dodge === 'slide'); }
+          else { b.state = 'summon'; b.timer = 0.5; bossSummon(); }
+        }
+        break;
+      case 'charge':
+        b.x -= (520 + G.idx * 20) * dt;
+        if (b.form === 'shark') b.y = gy - 40;
+        if (!b.hit && overlap(hbox(), bossBox(b))) {
+          var dodged = (b.dodge === 'slide' && h.slideT > 0) || (b.dodge === 'jump' && !h.grounded);
+          if (!dodged) { b.hit = true; hurt(b); }
+        }
+        if (b.timer <= 0 || d < 120) { b.state = 'recover'; b.timer = 0.9; b.y = gy; if (b.x > h.x + 155) b.x = h.x + 155; }
+        break;
+      case 'slam':
+      case 'throw':
+      case 'summon':
+        if (d > 200) b.x -= 180 * dt;
+        if (b.timer <= 0) { b.state = 'recover'; b.timer = 0.7; } break;
+      case 'stagger': break;
+      case 'recover':
+        if (d > 180) b.x -= 220 * dt;
+        if (b.timer <= 0) { b.state = 'back'; b.timer = 0.45; } break;
+      case 'back': b.x += 120 * dt; if (b.timer <= 0 || d > 230) { b.state = 'walk'; b.timer = Math.max(0.25, 0.6 / rage); } break;
     }
-    if (b.x - h.x < 70) { b.x = h.x + 70; if (b.state === 'walk') { b.state = 'windup'; b.timer = 0.5; } }
+    if (b.x - h.x < 80) b.x = h.x + 80;
+    if (b.x - h.x > 780) b.x = h.x + 780;
+    updateBossProjs(dt);
+  }
+  function bossSlam() {
+    var b = G.boss, gy = groundAt(b.x) || GROUND;
+    G.projs.push({ kind: 'wave', x: b.x - 50, y: gy - 10, vx: -480 - G.idx * 20, vy: 0, rot: 0, high: false, r: 34 });
+    AU.sfx('thud'); G.shake = 16; dust(b.x - 40, gy, 14);
+    popText(b.x - 80, b.y - 240, 'JUMP!', '#ffd0a0', 0.7);
+  }
+  function bossSummon() {
+    var b = G.boss, type = b.minion || 'walker', n = 2 + (G.idx > 4 ? 1 : 0);
+    var live = 0; G.ents.forEach(function (e) { if (e.alive) live++; });
+    if (live > 6) n = 1;
+    for (var i = 0; i < n; i++) {
+      var e = makeEnemy(type, b.x - 40 - i * 50, G.L, G.idx);
+      e.x = b.x + 30 - i * 70; e.y = groundAt(e.x) || b.y; e.state = e.state === 'perch' || e.state === 'swim' || e.state === 'wait' || e.state === 'climb' || e.state === 'perchJ' ? 'idle' : e.state;
+      if (e.type === 'fish') { e.state = 'idle'; e.tr = 1; e.vy = -200; }
+      if (e.type === 'monkey') { e.state = 'idle'; e.tr = 1; }
+      if (e.type === 'boulder') { e.state = 'roll'; e.vx = -240; }
+      G.ents.push(e);
+    }
+    AU.sfx('moan'); popText(b.x - 20, b.y - 300, 'MINIONS!', '#9cff6a', 0.8);
+  }
+  function updateBossProjs(dt) {
+    var h = G.hero;
     G.projs.forEach(function (p) {
+      if (p.kind === 'wave') {
+        p.x += p.vx * dt; var gy = groundAt(p.x) || GROUND; p.y = gy - 10;
+        if (p.x < G.camX - 80) p.dead = true;
+        var hb = hbox();
+        if (!p.dead && h.grounded && overlap(hb, [p.x - p.r, p.y - 24, p.x + p.r, p.y + 16])) { p.dead = true; hurt(p); }
+        return;
+      }
       p.vy += 1500 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += dt * 10;
       var gy = groundAt(p.x) || GROUND;
       if (p.y > gy - 14) { p.y = gy - 14; p.vy = -Math.abs(p.vy) * 0.3; p.vx *= 0.7; p.bounce = (p.bounce || 0) + 1; if (p.bounce > 3) p.dead = true; }
       var hb = hbox(); if (!p.dead && overlap(hb, [p.x - 16, p.y - 16, p.x + 16, p.y + 16])) { p.dead = true; hurt(p); blood(p.x, p.y, 8, 0.6); }
       if (!p.dead && h.atype && h.at < 0.5 && p.x - h.x > -10 && p.x - h.x < reach() && p.y > h.y - 200) { p.dead = true; blood(p.x, p.y, 14, 0.8); AU.sfx('chop'); G.score += 50; popText(p.x, p.y - 30, 'BATTED AWAY!', '#fff', 0.6); }
     });
-    G.projs = G.projs.filter(function (p) { return !p.dead && p.x > G.camX - 100; });
+    G.projs = G.projs.filter(function (p) { return !p.dead && p.x > G.camX - 160; });
   }
-  function bossThrow() {
-    var b = G.boss, h = G.hero, T = 0.95, high = rnd() < 0.35, tx = h.x + 10, ty = h.y - (high ? 120 : 30);
-    var sx = b.x - 60, sy = b.y - 300;
-    G.projs.push({ x: sx, y: sy, vx: (tx - sx) / T, vy: (ty - sy - 0.5 * 1500 * T * T) / T, rot: 0, high: high, head: ['zHead0', 'zHead1'][Math.floor(fx() * 2)] });
+  function bossThrow(forceHigh) {
+    var b = G.boss, h = G.hero, T = 0.9, high = forceHigh != null ? forceHigh : rnd() < 0.35;
+    var tx = h.x + 10, ty = h.y - (high ? 120 : 30);
+    var sx = b.x - 60, sy = (b.form === 'shark' ? b.y - 80 : b.y - 280);
+    var n = 1 + (G.idx > 5 && rnd() < 0.5 ? 1 : 0);
+    for (var i = 0; i < n; i++) {
+      G.projs.push({ kind: b.proj || 'head', x: sx, y: sy - i * 20, vx: (tx - sx) / T, vy: (ty - sy - 0.5 * 1500 * T * T) / T + (i ? -80 : 0), rot: 0, high: high, head: ['zHead0', 'zHead1'][Math.floor(fx() * 2)] });
+    }
     AU.sfx('swing'); popText(sx, sy - 40, high ? 'SLIDE!' : 'JUMP!', '#ffd0a0', 0.6);
   }
   function updateFx(dt) {
@@ -535,9 +653,17 @@
     }
     if (G.boss && G.boss.alive) {
       var b = G.boss;
-      if (b.state === 'windup' && b.timer < 0.35 && h.slideT <= 0) slide();
-      G.projs.forEach(function (p) { var dd = p.x - h.x; if (dd > 0 && dd < 200 && p.vx < 0) { if (p.high) { if (h.slideT <= 0) slide(); } else if (ai.cd <= 0) { slash(); ai.cd = 0.3; } } });
-      if (b.x - h.x < 220 && ai.cd <= 0 && b.state !== 'windup') { slash(); if (fx() < 0.5) ai.q.push({ t: 0.12, f: slash }); ai.cd = 0.4; }
+      if (b.state === 'windup' || b.state === 'slam' || b.state === 'charge') {
+        if (b.dodge === 'slide' && h.slideT <= 0) slide();
+        else if (b.dodge === 'jump' && h.grounded) jump();
+      }
+      G.projs.forEach(function (p) { var dd = p.x - h.x; if (dd > -20 && dd < 220) { if (p.kind === 'wave' || !p.high) { if (h.grounded) jump(); } else if (p.high && h.slideT <= 0) slide(); else if (ai.cd <= 0) { slash(); ai.cd = 0.3; } } });
+      if (ai.cd <= 0 && b.state !== 'windup' && b.state !== 'charge' && b.state !== 'slam') {
+        slash();
+        if (b.stag > 0 || b.stagNeed >= 1) ai.q.push({ t: 0.16, f: slash });
+        if (b.stag > 0.3 && G.spin >= 100) ai.q.push({ t: 0.30, f: slash });
+        ai.cd = b.stag > 0 ? 0.22 : 0.28;
+      }
       return;
     }
     if (ai.cd > 0) return;
@@ -617,7 +743,23 @@
     G.pick.forEach(function (p) { if (p.y === undefined || p.x < x0 || p.x > x1) return; cx.save(); cx.translate(p.x, p.y); ART.pickup(cx, p, t); cx.restore(); });
     G.ents.forEach(function (e) { if (e.x < x0 - 150 || e.x > x1 + 150) return; drawEnemy(e); });
     if (G.boss) drawEnemy(G.boss);
-    G.projs.forEach(function (p) { var im = IMG[p.head]; if (!im || !im.width) return; cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.drawImage(im, -20, -26, 40, 40 * im.height / im.width); cx.restore(); });
+    G.projs.forEach(function (p) {
+      cx.save(); cx.translate(p.x, p.y);
+      if (p.kind === 'wave') {
+        var r = p.r || 34, a = 0.7 + 0.3 * Math.sin(G.t * 20);
+        cx.fillStyle = 'rgba(255,80,40,' + a + ')'; cx.beginPath(); cx.ellipse(0, 0, r, 16, 0, 0, TAU); cx.fill();
+        cx.strokeStyle = 'rgba(255,230,180,0.9)'; cx.lineWidth = 3; cx.stroke();
+        cx.restore(); return;
+      }
+      cx.rotate(p.rot || 0);
+      if (p.head && IMG[p.head] && IMG[p.head].width) { var im = IMG[p.head]; cx.drawImage(im, -20, -26, 40, 40 * im.height / im.width); }
+      else if (p.kind === 'crate' || p.kind === 'cane') { cx.fillStyle = '#8a5a28'; cx.strokeStyle = '#14100e'; cx.lineWidth = 3; ART.rr(cx, -16, -14, 32, 28, 3); cx.fill(); cx.stroke(); }
+      else if (p.kind === 'rock') { cx.fillStyle = '#6b625a'; cx.strokeStyle = '#14100e'; cx.lineWidth = 3; cx.beginPath(); cx.arc(0, 0, 16, 0, TAU); cx.fill(); cx.stroke(); }
+      else if (p.kind === 'anchor') { cx.strokeStyle = '#c4c8d0'; cx.lineWidth = 5; cx.beginPath(); cx.moveTo(0, -18); cx.lineTo(0, 14); cx.moveTo(-12, 8); cx.quadraticCurveTo(0, 20, 12, 8); cx.stroke(); }
+      else if (p.kind === 'fish') { cx.fillStyle = '#4a8a62'; cx.strokeStyle = '#14100e'; cx.lineWidth = 3; cx.beginPath(); cx.ellipse(0, 0, 18, 8, 0, 0, TAU); cx.fill(); cx.stroke(); }
+      else { var im2 = IMG.zHead0; if (im2 && im2.width) cx.drawImage(im2, -20, -26, 40, 40 * im2.height / im2.width); }
+      cx.restore();
+    });
     G.pieces.forEach(function (p) {
       cx.save(); cx.globalAlpha = Math.min(1, p.life); cx.translate(p.x, p.y); cx.rotate(p.rot);
       if (p.kind === 'head') { cx.scale(p.sc, p.sc); ART.zhead(cx, p.z, 0, 30, 0); cx.fillStyle = '#9a0c0c'; cx.beginPath(); cx.ellipse(2, 28, 9, 4, 0, 0, TAU); cx.fill(); }
@@ -682,8 +824,8 @@
       if (e.hurtT > 0) cx.globalAlpha = 0.75;
       var glow = cx.createRadialGradient(0, -200, 20, 0, -200, 260); glow.addColorStop(0, 'rgba(255,0,0,0.25)'); glow.addColorStop(1, 'rgba(255,0,0,0)'); cx.fillStyle = glow; cx.fillRect(-260, -460, 520, 520);
     }
-    ART.zombie(cx, e, {});
-    if (e.type === 'boss' && e.state === 'windup') { cx.fillStyle = 'rgba(255,60,60,0.9)'; cx.font = '900 54px sans-serif'; cx.textAlign = 'center'; cx.fillText('!', -40, -380); }
+    if (e.type === 'boss') ART.drawBoss(cx, e); else ART.zombie(cx, e, {});
+    if (e.type === 'boss' && e.state === 'windup') { cx.fillStyle = 'rgba(255,60,60,0.9)'; cx.font = '900 54px sans-serif'; cx.textAlign = 'center'; cx.fillText((e.tele || '!'), 0, e.form === 'shark' ? -160 : -380); }
     cx.restore();
   }
   function weather(L, t) {
@@ -729,10 +871,10 @@
     cx.save(); cx.translate(sx - 8, sy + 16); cx.scale(0.45, 0.45); ART.sabre(cx, 0, 0, Math.PI * 0.82 + Math.sin(G.t * 3) * 0.1, 66, full ? '#ffb020' : null); cx.restore();
     txt(full ? 'SPIN x3!' : 'SPIN', sx, sy + 48, '900 11px "Trebuchet MS", Arial', full ? '#ffcc3a' : '#eee', 3);
     if (G.boss && G.boss.alive) {
-      var b = G.boss, bw2 = Math.min(420, W * 0.5), bx2 = W / 2 - bw2 / 2, by2 = m + 82;
+      var b = G.boss, bw2 = Math.min(420, W * 0.5), bx2 = W / 2 - bw2 / 2, by2 = m + 96;
       cx.fillStyle = 'rgba(0,0,0,0.6)'; ART.rr(cx, bx2 - 3, by2 - 3, bw2 + 6, 18, 6); cx.fill();
       cx.fillStyle = '#b00a14'; ART.rr(cx, bx2, by2, Math.max(1, bw2 * b.hp / b.max), 12, 5); cx.fill();
-      txt('GRAN ZOMBI', W / 2, by2 + 32, '900 14px "Trebuchet MS", Arial', '#ff5a5a', 4);
+      txt((b.name || 'BOSS') + (b.stag > 0 ? '  -  STAGGERED!' : ''), W / 2, by2 + 32, '900 14px "Trebuchet MS", Arial', b.stag > 0 ? '#ffcc3a' : '#ff5a5a', 4);
     }
     if (G.hintT > 0 && !DEMO) {
       var a = Math.min(1, G.hintT / 2) * 0.6;
@@ -767,30 +909,62 @@
       var sc = 0.85 + (i % 2) * 0.25; cx.globalAlpha = 0.92 * fade; cx.drawImage(silhouette(z), x - 110 * sc, H - 258 * sc, 220 * sc, 260 * sc); cx.globalAlpha = 1;
     });
     for (var f = 0; f < 6; f++) { var fx3 = ((f * 260 + T * (12 + f * 5)) % (W + 600)) - 300, fy = H * (0.55 + (f % 3) * 0.14); var g = cx.createRadialGradient(fx3, fy, 10, fx3, fy, 260); g.addColorStop(0, 'rgba(200,190,210,0.16)'); g.addColorStop(1, 'rgba(200,190,210,0)'); cx.fillStyle = g; cx.fillRect(fx3 - 260, fy - 260, 520, 520); }
+    function dripTitle(str, x, y, fs) {
+      cx.font = '900 ' + fs + 'px Impact, "Arial Black", "Trebuchet MS", sans-serif';
+      cx.lineJoin = 'round'; cx.lineWidth = Math.max(4, fs * 0.12); cx.strokeStyle = '#1a0004';
+      cx.strokeText(str, x, y);
+      var tg = cx.createLinearGradient(0, y - fs, 0, y);
+      tg.addColorStop(0, '#ff4a3a'); tg.addColorStop(0.6, '#c0101a'); tg.addColorStop(1, '#6a0008');
+      cx.fillStyle = tg; cx.fillText(str, x, y);
+      var tw = cx.measureText(str).width;
+      var align = cx.textAlign || 'center';
+      var left = align === 'left' ? x : align === 'right' ? x - tw : x - tw / 2;
+      var nd = Math.max(8, Math.round(tw / 26));
+      for (var d = 0; d < nd; d++) {
+        var dx = left + ART.hash(d * 5.3 + str.length) * tw, cyc = ((T * (0.25 + ART.hash(d) * 0.3) + ART.hash(d * 2 + 11)) % 1);
+        var len = cyc * fs * (0.45 + ART.hash(d * 7) * 0.6);
+        cx.fillStyle = '#9a0610'; cx.fillRect(dx - 2.5, y - 6, 5, len);
+        cx.beginPath(); cx.arc(dx, y - 6 + len, 5, 0, TAU); cx.fill();
+        if (cyc > 0.85) { cx.beginPath(); cx.arc(dx, y + len + (cyc - 0.85) * 600, 3.5, 0, TAU); cx.fill(); }
+      }
+      return tw;
+    }
     var land = W > H * 1.15;
     var ka = IMG.heroKeyart, kin = clamp((t - 1.2) / 0.8, 0, 1), kfl = (t < 2.6 && ART.hash(Math.floor(T * 20)) < 0.4) ? 0.3 : (ART.hash(Math.floor(T * 9) + 3) < 0.1 ? 0.55 : 1);
+    var kx = 0, ky = 0, kw = 0, kh = 0;
     if (ka && ka.width && kin > 0) {
-      var kh = land ? H * 0.92 : H * 0.5, kw = kh * ka.width / ka.height, kx = land ? W * 0.06 : W / 2 - kw / 2, ky = land ? H - kh : H * 0.3;
+      var topBand = land ? Math.max(56, Math.min(H * 0.17, 92)) : 0;
+      kh = land ? H - topBand - H * 0.02 : H * 0.5;
+      kw = kh * ka.width / ka.height;
+      kx = land ? W * 0.05 : W / 2 - kw / 2;
+      ky = land ? H - kh : H * 0.3;
       cx.save(); cx.globalAlpha = kin * kfl * flick; cx.shadowColor = 'rgba(255,20,20,0.9)'; cx.shadowBlur = 30; cx.drawImage(ka, kx, ky + (1 - kin) * 30, kw, kh); cx.restore();
-      // under-lighting flicker on his face
     }
     var slam = clamp((t - 2.4) / 0.25, 0, 1);
     if (slam > 0) {
-      var tx = land ? W * 0.64 : W / 2, ty = land ? H * 0.3 : H * 0.15, fs = Math.min(land ? W * 0.085 : W * 0.16, 92) * (1 + (1 - slam) * 1.5);
-      cx.save(); cx.globalAlpha = slam; cx.textAlign = 'center'; cx.font = '900 ' + fs + 'px Impact, "Arial Black", "Trebuchet MS", sans-serif';
+      var tx = land ? W * 0.66 : W / 2, ty = land ? H * 0.34 : H * 0.15, fs = Math.min(land ? W * 0.08 : W * 0.16, 92) * (1 + (1 - slam) * 1.5);
+      cx.save(); cx.globalAlpha = slam; cx.textAlign = 'center';
       if (slam < 1) cx.translate((fx() - 0.5) * 16, (fx() - 0.5) * 16);
-      cx.lineJoin = 'round'; cx.lineWidth = fs * 0.12; cx.strokeStyle = '#1a0004'; cx.strokeText('ZOMBI LILE', tx, ty);
-      var tg = cx.createLinearGradient(0, ty - fs, 0, ty); tg.addColorStop(0, '#ff4a3a'); tg.addColorStop(0.6, '#c0101a'); tg.addColorStop(1, '#6a0008'); cx.fillStyle = tg; cx.fillText('ZOMBI LILE', tx, ty);
-      var tw = cx.measureText('ZOMBI LILE').width;
-      for (var d = 0; d < 14; d++) {
-        var dx = tx - tw / 2 + ART.hash(d * 5.3) * tw, cyc = ((T * (0.25 + ART.hash(d) * 0.3) + ART.hash(d * 2)) % 1), len = cyc * fs * (0.45 + ART.hash(d * 7) * 0.6);
-        cx.fillStyle = '#9a0610'; cx.fillRect(dx - 2.5, ty - 6, 5, len); cx.beginPath(); cx.arc(dx, ty - 6 + len, 5, 0, TAU); cx.fill();
-        if (cyc > 0.85) { cx.beginPath(); cx.arc(dx, ty + len + (cyc - 0.85) * 600, 3.5, 0, TAU); cx.fill(); }
-      }
+      dripTitle('ZOMBI LILE', tx, ty, fs);
       cx.font = '900 ' + fs * 0.42 + 'px Impact, "Arial Black", sans-serif'; cx.lineWidth = 5; cx.strokeStyle = '#000'; cx.fillStyle = '#efe6d2';
       cx.strokeText('R U N N E R', tx, ty + fs * 0.62); cx.fillText('R U N N E R', tx, ty + fs * 0.62);
       cx.font = '700 ' + Math.max(12, fs * 0.16) + 'px "Trebuchet MS", Arial'; cx.fillStyle = '#f7d36b'; cx.lineWidth = 3;
       cx.strokeText('Port Louis \u2192 Samara  \u2022  8 levels  \u2022  sabre only', tx, ty + fs * 0.92); cx.fillText('Port Louis \u2192 Samara  \u2022  8 levels  \u2022  sabre only', tx, ty + fs * 0.92);
+      // "Bojo VS Zombies" — blood-drip title at the top of the character, beside ZOMBI LILE
+      var bojo = 'BOJO VS ZOMBIES';
+      if (land && kw > 0) {
+        var bfs = Math.max(26, Math.min(58, W * 0.05, kw * 0.13));
+        var bx = kx + kw * 0.52;
+        var by = Math.max(bfs * 0.95, Math.min(H * 0.125, ky + bfs * 0.2));
+        if (by > ky + kh * 0.12) by = ky + Math.min(8, kh * 0.04);
+        dripTitle(bojo, bx, by, bfs);
+      } else {
+        var bfs2 = Math.max(20, Math.min(W * 0.085, 54));
+        var by2 = ky > 0 ? ky - 10 : H * 0.28;
+        var taglineY = ty + fs * 0.92;
+        if (by2 < taglineY + bfs2 * 0.7) by2 = taglineY + bfs2 * 0.85;
+        dripTitle(bojo, W / 2, by2, bfs2);
+      }
       cx.restore();
     }
     if (t < 1.6) { cx.fillStyle = 'rgba(0,0,0,' + clamp(1 - t / 1.6, 0, 1) * 0.92 + ')'; cx.fillRect(0, 0, W, H); cx.textAlign = 'center'; cx.fillStyle = 'rgba(230,30,30,' + clamp(Math.sin(t * 2.4), 0, 1) + ')'; cx.font = '700 18px "Courier New", monospace'; cx.fillText('PORT LOUIS, MAURITIUS.  18:13.  THE FIRST ONE TURNS...', W / 2, H / 2); }
@@ -801,10 +975,8 @@
 
   // ---------- INPUT ----------
   var ptrs = {};
-  function firstGesture() { AU.init(); if (!G.audioStarted && AU.ready()) { G.audioStarted = true; if (!G.L) AU.setMusic('title'); else { AU.setMusic('run', G.idx / 8); AU.setAmbience(G.L.amb); } } }
-  document.addEventListener('pointerdown', firstGesture, true);
-  document.addEventListener('touchend', firstGesture, true);
-  document.addEventListener('keydown', firstGesture, true);
+  function firstGesture() { AU.init(); AU.resume(); if (!G.audioStarted && AU.ready()) { G.audioStarted = true; if (!G.L) AU.setMusic('title'); else { AU.setMusic(G.boss && G.boss.alive ? 'boss' : 'run', G.idx / 8); AU.setAmbience(G.L.amb); } } }
+  ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (ev) { document.addEventListener(ev, firstGesture, true); });
   cv.addEventListener('pointerdown', function (e) {
     e.preventDefault();
     if (G.mode === 'title') { G.titleT = Math.max(G.titleT, 2.7); return; }
@@ -854,7 +1026,8 @@
     $('levels').classList.remove('hidden');
   });
   click('btnLevelsBack', toTitle);
-  click('btnCard', function () { if (G.cardAction === 'next') startLevel(G.idx + 1); else { hideAll(); G.mode = 'play'; showHud(true); checkRotate(); } });
+  function beginPlay() { hideAll(); G.mode = 'play'; showHud(true); checkRotate(); AU.init(); AU.voice('levelStart'); }
+  click('btnCard', function () { if (G.cardAction === 'next') startLevel(G.idx + 1); else beginPlay(); });
   click('btnPause', function () { pauseGame(true); });
   click('btnResume', function () { pauseGame(false); });
   click('btnQuit', toTitle);
@@ -873,7 +1046,7 @@
     try { pollPointers(); update(dt); AU.update(dt); render(); } catch (err) { console.error(err); }
     requestAnimationFrame(frame);
   }
-  window.__zrAdvance = function (n, dt) { for (var i = 0; i < n; i++) update(dt); render(); return { mode: G.mode, level: G.idx + 1, x: G.hero ? Math.round(G.hero.x) : 0, score: G.score, hearts: G.hearts, kills: G.kills, ents: G.ents ? G.ents.length : 0 }; };
+  window.__zrAdvance = function (n, dt) { for (var i = 0; i < n; i++) update(dt); render(); return { mode: G.mode, level: G.idx + 1, x: G.hero ? Math.round(G.hero.x) : 0, score: G.score, hearts: G.hearts, kills: G.kills, ents: G.ents ? G.ents.length : 0, boss: G.boss && G.boss.alive ? G.boss.form : (G.boss ? 'dead' : null), bossHp: G.boss ? G.boss.hp : 0, bossState: G.boss ? G.boss.state : null }; };
   G.api = { startRun: startRun, startLevel: startLevel, toTitle: toTitle, jump: jump, slide: slide, slash: slash, victory: victory, levelComplete: levelComplete, spawnBoss: spawnBoss, resize: resize,
     gameOver: function () { G.mode = 'play'; G.hearts = 1; G.hero.invuln = 0; hurt('test'); },
     teleport: function (frac) { var h = G.hero; h.x = G.endX * frac; if (!segAt(h.x)) h.x = nextSeg(h.x).x0 + 50; h.y = groundAt(h.x); h.grounded = true; h.vy = 0; G.camX = h.x - W * 0.27; G.camY = baseGround(h.x) - GROUND; G.ents.forEach(function (e) { if (e.x < h.x + 200) { e.dead = true; e.alive = false; } }); G.obs = G.obs.filter(function (o) { return o.x > h.x + 300; }); } };

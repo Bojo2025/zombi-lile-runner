@@ -176,7 +176,7 @@
     if (t === 'monkey') return monkey(c, z, opt);
     if (t === 'fish') return fish(c, z, opt);
     var human = z.tr !== undefined ? 1 - Math.min(1, z.tr) : 0; // 1 = fully human (turner before turning)
-    var sc = t === 'brute' ? 1.32 : t === 'boss' ? 2.3 : 1;
+    var sc = z.scale || (t === 'brute' ? 1.32 : t === 'boss' ? 2.3 : 1);
     var o = z.outfit, skin = z.skin;
     if (human > 0) skin = mix(skin, z.humanSkin || '#b97a52', human);
     if (o.tags.indexOf('hawaii') >= 0 && human === 0) skin = mix(skin, '#c28a6a', 0.35); // sunburnt tourist
@@ -571,6 +571,104 @@
     }
     c.restore();
     c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+  };
+
+  // Themed arena bosses. Origin is at the feet, facing left (same as zombies).
+  ART.drawBoss = function (c, z) {
+    var form = z.form || 'granzombi';
+    if (form === 'shark') { drawSharkBoss(c, z); return; }
+    c.save();
+    ART.zombie(c, z, {});
+    var sc = z.scale || 2.3;
+    c.scale(sc, sc);
+    if (form === 'docker') {
+      // cargo hook hanging from the front reach
+      c.save(); c.strokeStyle = '#c4c8d0'; c.fillStyle = '#8a9098'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(-28, -70); c.lineTo(-48, -40); c.stroke();
+      c.beginPath(); c.arc(-52, -28, 10, -0.4, Math.PI * 1.2); c.stroke();
+      c.fillStyle = '#3a2a1a'; rr(c, -8, -8, 16, 12, 2); c.fill(); // boot scuff already
+      c.restore();
+    } else if (form === 'gorilla') {
+      c.fillStyle = 'rgba(40,28,22,0.85)';
+      c.beginPath(); c.ellipse(6, -36, 16, 22, 0.2, 0, TAU); c.fill();
+      c.beginPath(); c.ellipse(-18, -20, 14, 10, -0.3, 0, TAU); c.fill();
+    } else if (form === 'rock') {
+      c.fillStyle = '#6b625a'; c.strokeStyle = OUT; c.lineWidth = 2.5;
+      for (var i = 0; i < 5; i++) {
+        var a = -40 + i * 14, x = -10 + hash(i + 2) * 16;
+        c.beginPath(); c.ellipse(x, a, 10 + hash(i) * 6, 7, 0.2, 0, TAU); c.fill(); c.stroke();
+      }
+    } else if (form === 'bloater') {
+      c.fillStyle = z.outfit && z.outfit.shirt ? z.outfit.shirt : '#e85d8a';
+      c.strokeStyle = OUT; c.lineWidth = 3;
+      c.beginPath(); c.ellipse(2, -18, 28, 22, 0, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = 'rgba(80,20,20,0.35)'; c.beginPath(); c.ellipse(8, -10, 8, 6, 0, 0, TAU); c.fill();
+    } else if (form === 'captain') {
+      // bicorn / tricorn
+      c.fillStyle = '#1a1a22'; c.strokeStyle = OUT; c.lineWidth = 2.5;
+      c.beginPath(); c.ellipse(-4, -108, 28, 7, -0.1, 0, TAU); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(-2, -118, 16, 10, -0.1, Math.PI, TAU); c.fill(); c.stroke();
+      c.fillStyle = '#c4a24a'; c.fillRect(-12, -112, 20, 3);
+      // coat tails
+      c.fillStyle = '#2a2030'; c.beginPath(); c.moveTo(12, -8); c.lineTo(26, 16); c.lineTo(8, 4); c.closePath(); c.fill();
+      // seaweed tentacle
+      c.strokeStyle = '#2a6a48'; c.lineWidth = 5; c.beginPath(); c.moveTo(8, -4);
+      c.quadraticCurveTo(30, 10, 18, 28); c.quadraticCurveTo(10, 36, 22, 42); c.stroke();
+    } else if (form === 'harvester') {
+      // huge cane machete
+      c.save(); c.translate(-30, -80); c.rotate(-0.9);
+      c.fillStyle = '#c8c4bc'; c.strokeStyle = OUT; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(70, -8); c.quadraticCurveTo(80, 2, 68, 8); c.lineTo(0, 6); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#5a3a1a'; rr(c, -14, -4, 18, 10, 2); c.fill(); c.stroke();
+      c.restore();
+      // cane leaves on the back
+      c.fillStyle = '#3a6a22';
+      for (var k = 0; k < 4; k++) { c.beginPath(); c.ellipse(16, -50 - k * 8, 4, 16, 0.4 + k * 0.1, 0, TAU); c.fill(); }
+    }
+    c.restore();
+  };
+  function drawSharkBoss(c, z) {
+    var ph = z.phase || 0, hurt = z.hurtT > 0, stag = z.stag > 0;
+    c.save();
+    if (hurt) c.globalAlpha = 0.75;
+    if (stag) c.translate(Math.sin(ph * 20) * 4, 0);
+    var lunge = (z.state === 'charge' ? -30 : 0) + Math.sin(ph) * 4;
+    c.translate(lunge, -70);
+    c.rotate(-0.12 + (z.state === 'slam' ? 0.4 : 0) + (z.state === 'dying' ? 0.6 : 0));
+    // body
+    var skin = z.skin || '#4a6a52', skinD = mix(skin, '#1a2014', 0.35);
+    c.fillStyle = skin; c.strokeStyle = OUT; c.lineWidth = 5;
+    c.beginPath(); c.ellipse(-10, 0, 130, 48, 0, 0, TAU); c.fill(); c.stroke();
+    // belly
+    c.fillStyle = mix(skin, '#d8d0b8', 0.45); c.beginPath(); c.ellipse(-6, 16, 100, 22, 0, 0, Math.PI); c.fill();
+    // rotting patches
+    c.fillStyle = 'rgba(90,20,20,0.7)';
+    c.beginPath(); c.ellipse(30, -6, 16, 10, 0.3, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(-40, 8, 12, 8, -0.2, 0, TAU); c.fill();
+    // dorsal fin
+    c.fillStyle = skinD; c.strokeStyle = OUT; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(-20, -44); c.lineTo(10, -110); c.lineTo(30, -40); c.closePath(); c.fill(); c.stroke();
+    // tail
+    c.beginPath(); c.moveTo(110, 0); c.lineTo(170, -50); c.lineTo(140, 0); c.lineTo(175, 40); c.lineTo(110, 10); c.closePath(); c.fill(); c.stroke();
+    // pectoral
+    c.beginPath(); c.ellipse(20, 30, 36, 12, 0.5, 0, TAU); c.fill(); c.stroke();
+    // head / mouth (left)
+    if (!z.headless) {
+      c.fillStyle = skin; c.beginPath(); c.moveTo(-120, -20); c.quadraticCurveTo(-190, 0, -130, 28); c.lineTo(-90, 16); c.lineTo(-100, -16); c.closePath(); c.fill(); c.stroke();
+      // teeth
+      c.fillStyle = '#f3efe0';
+      for (var i = 0; i < 6; i++) {
+        var tx = -150 + i * 10, ty = (i % 2 ? 8 : -8);
+        c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx + 5, ty + (ty > 0 ? 12 : -12)); c.lineTo(tx + 10, ty); c.fill();
+      }
+      // eye
+      c.fillStyle = '#fff3a0'; c.shadowColor = '#ff2020'; c.shadowBlur = 14;
+      c.beginPath(); c.ellipse(-140, -18, 10, 12, 0, 0, TAU); c.fill();
+      c.shadowBlur = 0; c.fillStyle = '#c01010'; c.beginPath(); c.arc(-143, -18, 5, 0, TAU); c.fill();
+    } else {
+      c.fillStyle = '#8a0b0b'; c.beginPath(); c.ellipse(-120, 0, 22, 16, 0, 0, TAU); c.fill(); c.stroke();
+    }
+    c.restore();
   };
   window.ZRArt = ART;
 })();

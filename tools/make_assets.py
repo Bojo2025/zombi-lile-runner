@@ -76,7 +76,7 @@ for i, (x0, x1) in enumerate(runs[:3]):
     assets['zHead%d' % i] = uri(z)
 bg = Image.open(os.path.join(SRC, 'gen_title_bg.jpg')).convert('RGB')
 bg = fit(bg, 1280, 720); bg.save(os.path.join(OUT, 'title_bg.jpg'), quality=82); assets['titleBg'] = uri(bg, 'JPEG', 80)
-for i, n in enumerate(['portlouis','pereybere','chamarel','mountain','flicenflac','sea','sugarcane','samara']):
+for i, n in enumerate(['portlouis','pereybere','chamarel','mountain','flicenflac','sea','sugarcane','samara','pieterboth']):
     b = Image.open(os.path.join(SRC, 'gen_bg%d_%s.jpg' % (i + 1, n))).convert('RGB')
     b = fit(b, 1280, 720); b.save(os.path.join(OUT, 'bg%d_%s.jpg' % (i + 1, n)), quality=80)
     assets['bg%d' % (i + 1)] = uri(b, 'JPEG', 74)

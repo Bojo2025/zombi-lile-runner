@@ -307,6 +307,11 @@
       else if (ambKind === 'sea') { osc('sine', 110 + Math.random() * 40, t, 0.6, 0.05, ambBus, { to: 80, lp: 400 }); if (Math.random() < 0.25) A.sfx('thunder'); }
       else if (ambKind === 'cane') { osc('sawtooth', 600, t, 0.18, 0.04, ambBus, { to: 380, lp: 1800, q: 5 }); osc('sawtooth', 580, t + 0.25, 0.2, 0.04, ambBus, { to: 360, lp: 1800, q: 5 }); }
       else if (ambKind === 'mountain') { noise(t, 2.5, 0.07, 'bandpass', 500 + Math.random() * 500, ambBus, { a: 0.8, d: 1.5, s: 0.02, q: 3 }); }
+      else if (ambKind === 'lake') { var bl = 220 + Math.floor(Math.random() * 3) * 55; osc('sine', bl, t, 2.6, 0.035, ambBus, { a: 0.02, d: 2.4, s: 0.01, send: 0.5 }); osc('sine', bl * 2.01, t, 1.8, 0.015, ambBus, { a: 0.02, d: 1.6, s: 0.005, send: 0.5 }); }
+      else if (ambKind === 'falls') { noise(t, 2.2, 0.06, 'lowpass', 900, ambBus, { a: 0.4, d: 1.5, s: 0.03 }); }
+      else if (ambKind === 'harbour') { if (Math.random() < 0.4) osc('sawtooth', 140, t, 1.4, 0.03, ambBus, { to: 120, lp: 500 }); else { var gh = 1300 + Math.random() * 400; osc('triangle', gh, t, 0.22, 0.03, ambBus, { to: gh * 0.6 }); } }
+      else if (ambKind === 'night') { if (Math.random() < 0.5) { osc('sine', 4200, t, 0.05, 0.02, ambBus); osc('sine', 4200, t + 0.12, 0.05, 0.02, ambBus); } else osc('sawtooth', 380, t, 1.6, 0.025, ambBus, { to: 520, lp: 1200, send: 0.6 }); }
+      else if (ambKind === 'citadel') { osc('sine', 55, t, 1.2, 0.06, ambBus, { to: 40, lp: 300 }); if (Math.random() < 0.3) A.sfx('thunder'); }
       if (Math.random() < 0.35) A.moan(Math.random());
     }
   };
@@ -318,7 +323,8 @@
     var f = ctx.createBiquadFilter(); var g = ctx.createGain(); g.gain.value = 0.0001;
     var lfo = ctx.createOscillator(), lg = ctx.createGain();
     var cfg = { city: ['lowpass', 260, 0.18, 0.05, 0.05], beach: ['lowpass', 700, 0.22, 0.12, 0.18], sunset: ['lowpass', 600, 0.2, 0.1, 0.15],
-      forest: ['bandpass', 1800, 0.05, 0.2, 0.02], mountain: ['bandpass', 600, 0.16, 0.07, 0.12], sea: ['lowpass', 500, 0.3, 0.15, 0.22], cane: ['highpass', 2500, 0.07, 0.3, 0.04] }[kind] || ['lowpass', 400, 0.1, 0.1, 0.05];
+      forest: ['bandpass', 1800, 0.05, 0.2, 0.02], mountain: ['bandpass', 600, 0.16, 0.07, 0.12], sea: ['lowpass', 500, 0.3, 0.15, 0.22], cane: ['highpass', 2500, 0.07, 0.3, 0.04],
+      lake: ['lowpass', 380, 0.12, 0.06, 0.05], falls: ['lowpass', 1400, 0.34, 0.2, 0.1], harbour: ['lowpass', 520, 0.2, 0.1, 0.12], night: ['bandpass', 2600, 0.04, 0.4, 0.02], citadel: ['lowpass', 300, 0.26, 0.08, 0.14] }[kind] || ['lowpass', 400, 0.1, 0.1, 0.05];
     f.type = cfg[0]; f.frequency.value = cfg[1]; lfo.frequency.value = cfg[3]; lg.gain.value = cfg[4];
     lfo.connect(lg); lg.connect(g.gain); s.connect(f); f.connect(g); g.connect(ambBus);
     g.gain.setTargetAtTime(cfg[2], ctx.currentTime, 0.8); s.start(); lfo.start();

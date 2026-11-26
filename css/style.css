@@ -8,6 +8,7 @@ canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 10
   gap: 2vmin; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   text-align: center; z-index: 5; }
 #levels, #pause, #over, #victory, #card, #tutorial, #challenges, #outfits, #settings { background: radial-gradient(ellipse at center, rgba(30,6,8,.80), rgba(5,2,3,.94)); }
+#levels { overflow-y: auto; }
 #title { justify-content: flex-end; padding-bottom: 5vh; background: transparent; pointer-events: none; }
 #title .menu { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 1.6vmin; }
 .title-spacer { flex: 1; }
@@ -67,3 +68,10 @@ p { max-width: 80vw; font-size: clamp(14px, 3vmin, 22px); line-height: 1.45; mar
 
 /* opaque menus */
 #challenges, #outfits, #settings { background: radial-gradient(ellipse at center, rgba(18,4,6,.97), rgba(4,1,2,.995)); }
+/* level lock feedback + final level highlight (levels 10-14 update) */
+.grid button.locked { cursor: not-allowed; filter: grayscale(.6); }
+.grid button.shake { animation: zr-shake .35s ease; }
+@keyframes zr-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+.grid button:last-child:not(.locked) { border-color: rgba(255,210,60,.8); box-shadow: 0 0 14px rgba(255,180,40,.45); }
+#victory #vicText { max-width: min(92vw, 760px); line-height: 1.45; }
+#victory { background: radial-gradient(ellipse at center, rgba(30,6,8,.72), rgba(5,2,3,.30)); }

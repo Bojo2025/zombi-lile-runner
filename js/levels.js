@@ -1,7 +1,8 @@
-// ZOMBI LILE RUNNER - the 8-level campaign across Mauritius.
+// ZOMBI LILE RUNNER - the 14-level campaign across Mauritius.
+// Levels 1-5 are open from the start; levels 6-14 all unlock together once levels 1-5 are all cleared.
 // enemies: weights for spawn picks. obstacles: kinds that can appear. terrain: flat | climb | boats.
 // Every level ends in a gauntlet and then a multi-phase arena boss (see `boss`).
-// vehicle: jeep | jetski | quad | boat | tractor — a ride-with-rockets pickup, themed per level.
+// vehicle: jeep | jetski | quad | boat | tractor | moto | armour — a ride-with-rockets pickup, themed per level.
 window.ZR_LEVELS = [
   { id: 1, name: 'Port Louis', sub: 'Caudan Waterfront & the harbour', bg: 'bg1', length: 2520, speed: 330, terrain: 'flat', gaps: 0.18,
     ground: 'cobble', amb: 'city', fog: 'rgba(255,140,60,0.10)', tint: 'rgba(40,20,10,0.10)',
@@ -52,13 +53,57 @@ window.ZR_LEVELS = [
     event: { at: 0.48, kind: 'horde', types: ['crawler', 'tank', 'bloater', 'sprinter'], n: 13, text: 'CANE SWARM!' },
     intro: 'Cane cutters with straw hats and something crawling between the rows. Climb onto a tractor. GRAN KOUPE is coming through the crop.',
     boss: { form: 'harvester', name: 'GRAN KOUPE', title: 'GRAN KOUPE CUTS A PATH!', death: 'GRAN KOUPE DECAPITATED!', hp: 34, minion: 'crawler', proj: 'cane' } },
-  { id: 8, name: 'Samara', sub: 'Le Morne Brabant at sunset - the last beach', bg: 'bg8', length: 3120, speed: 430, terrain: 'flat', gaps: 0.06,
+  { id: 8, name: 'Le Morne', sub: 'Le Morne Brabant at sunset - the last beach', bg: 'bg8', length: 3120, speed: 430, terrain: 'flat', gaps: 0.06,
     ground: 'darksand', amb: 'sunset', fog: 'rgba(255,40,40,0.12)', tint: 'rgba(60,0,0,0.12)',
     enemies: { walker: 4, crawler: 2, brute: 2, fish: 2, monkey: 1, sprinter: 3, tank: 2, helmet: 2, bloater: 2, flyer: 2, leaper: 2, spitter: 2 },
     outfit: 'mix', obstacles: ['rock', 'driftwood', 'palmleaf'], vehicle: 'jetski',
     event: { at: 0.46, kind: 'horde', types: ['brute', 'tank', 'bloater', 'sprinter', 'flyer'], n: 14, text: 'THE LAST HORDE!' },
-    intro: 'The outbreak ends where the island ends. Ride whatever still runs. Reach Samara and face the GRAN ZOMBI.',
-    boss: { form: 'granzombi', name: 'GRAN ZOMBI', title: 'THE GRAN ZOMBI RISES!', death: 'GRAN ZOMBI DECAPITATED!', hp: 40, minion: 'brute', proj: 'head' } }
+    intro: 'The outbreak ends where the island ends. Ride whatever still runs. Reach Le Morne and face the GRAN ZOMBI.',
+    boss: { form: 'granzombi', name: 'GRAN ZOMBI', title: 'THE GRAN ZOMBI RISES!', death: 'GRAN ZOMBI DECAPITATED!', hp: 40, minion: 'brute', proj: 'head' } },
+  { id: 9, name: 'Pieter Both Peak', sub: 'The balancing rock in the storm', bg: 'bg9', length: 3240, speed: 440, terrain: 'climb', gaps: 0.12,
+    ground: 'rock', amb: 'mountain', fog: 'rgba(170,190,255,0.12)', tint: 'rgba(8,8,28,0.30)',
+    enemies: { walker: 5, brute: 3, crawler: 2, boulder: 4, tank: 3, helmet: 3, leaper: 3, flyer: 2, sprinter: 3 },
+    outfit: 'hiker', obstacles: ['rock', 'overhang', 'rock'], vehicle: 'jeep',
+    event: { at: 0.46, kind: 'horde', types: ['boulder', 'tank', 'helmet', 'sprinter'], n: 15, text: 'SUMMIT STORM!' },
+    intro: 'The ridge ends at the balancing rock. Lightning splits the peak and the dead climb with you. A jeep waits on the last switchback. GRAN ROC holds the summit.',
+    boss: { form: 'rock', name: 'GRAN ROC', title: 'GRAN ROC BREAKS FROM THE PEAK!', death: 'GRAN ROC DECAPITATED!', hp: 44, minion: 'boulder', proj: 'rock' } },
+  // ---------------- ACT II: THE ROAD TO THE ZOMBI KING ----------------
+  { id: 10, name: 'Grand Bassin', sub: 'Ganga Talao - the sacred lake in the mist', bg: 'bg10', length: 3300, speed: 450, terrain: 'flat', gaps: 0.1,
+    ground: 'temple', amb: 'lake', fog: 'rgba(170,255,210,0.16)', tint: 'rgba(10,30,24,0.20)',
+    enemies: { walker: 4, turner: 3, crawler: 2, helmet: 2, flyer: 2, spitter: 2, leaper: 3, tank: 2, sprinter: 3, bloater: 1 },
+    outfit: 'pilgrim', obstacles: ['diya', 'stones', 'flagline', 'diya', 'rock'], vehicle: 'moto',
+    event: { at: 0.47, kind: 'horde', types: ['turner', 'leaper', 'spitter', 'sprinter'], n: 15, text: 'THE MIST WALKERS!' },
+    intro: 'The lamps around the sacred lake still burn, but the mist is full of the dead. Kick-start a moto on the temple road. Something ancient is stirring in the deep water: the GRAN ANGUY, king of the lake eels.',
+    boss: { form: 'eel', name: 'GRAN ANGUY', title: 'THE GRAN ANGUY RISES FROM THE LAKE!', death: 'GRAN ANGUY DECAPITATED!', hp: 46, minion: 'leaper', proj: 'eel' } },
+  { id: 11, name: 'Rochester Falls', sub: 'Souillac - the river cuts through basalt', bg: 'bg11', length: 3380, speed: 460, terrain: 'flat', gaps: 0.16,
+    ground: 'basalt', amb: 'falls', fog: 'rgba(200,240,255,0.16)', tint: 'rgba(0,20,30,0.16)',
+    enemies: { walker: 4, crawler: 3, fish: 3, brute: 2, sprinter: 3, helmet: 2, tank: 2, leaper: 3, spitter: 2, flyer: 2 },
+    outfit: 'hiker', obstacles: ['rock', 'log', 'roots', 'branch', 'stones'], vehicle: 'quad',
+    event: { at: 0.47, kind: 'horde', types: ['fish', 'crawler', 'tank', 'leaper'], n: 15, text: 'THE RIVER BOILS!' },
+    intro: 'Rain, spray and slippery basalt columns. Jump the river channels, grab a quad on the cane road, and do not stop. Under the falls waits the KAMARON GEANT, a giant zombie river prawn with claws like cutlasses.',
+    boss: { form: 'prawn', name: 'KAMARON GEANT', title: 'THE KAMARON GEANT BURSTS FROM THE FALLS!', death: 'KAMARON GEANT DECAPITATED!', hp: 48, minion: 'fish', proj: 'claw' } },
+  { id: 12, name: 'Mahebourg & Ile aux Aigrettes', sub: 'Waterfront, lagoon and the island reserve', bg: 'bg12', length: 3460, speed: 470, terrain: 'flat', gaps: 0.14,
+    ground: 'promenade', amb: 'harbour', fog: 'rgba(255,120,200,0.10)', tint: 'rgba(30,0,30,0.12)',
+    enemies: { walker: 5, crawler: 2, fish: 3, brute: 2, sprinter: 3, spitter: 2, flyer: 3, bloater: 2, helmet: 2, tank: 2, leaper: 2 },
+    outfit: 'fisher', obstacles: ['barrel', 'net', 'bollard', 'pirogue', 'boom'], vehicle: 'boat',
+    event: { at: 0.46, kind: 'horde', types: ['walker', 'fish', 'bloater', 'flyer', 'sprinter'], n: 16, text: 'FERRY OF THE DEAD!' },
+    intro: 'A burning ferry has run aground in the lagoon and its passengers are wading ashore. Run the old waterfront, steal a speedboat, and cross to Ile aux Aigrettes. The GRAN TORTI, a giant tortoise older than the island, has turned.',
+    boss: { form: 'tortoise', name: 'GRAN TORTI', title: 'THE GRAN TORTI CRAWLS OUT OF THE RESERVE!', death: 'GRAN TORTI DECAPITATED!', hp: 50, minion: 'walker', proj: 'shell' } },
+  { id: 13, name: 'Black River Gorges', sub: 'The national park under a blood moon', bg: 'bg13', length: 3540, speed: 480, terrain: 'flat', gaps: 0.14,
+    ground: 'gorge', amb: 'night', fog: 'rgba(110,255,140,0.16)', tint: 'rgba(6,0,18,0.36)',
+    enemies: { walker: 4, crawler: 3, monkey: 4, brute: 2, sprinter: 4, tank: 2, helmet: 2, leaper: 3, spitter: 2, flyer: 3, bloater: 1 },
+    outfit: 'hiker', obstacles: ['log', 'roots', 'branch', 'rock', 'overhang'], vehicle: 'jeep',
+    event: { at: 0.46, kind: 'horde', types: ['monkey', 'sprinter', 'leaper', 'flyer', 'tank'], n: 17, text: 'BLOOD MOON HOWL!' },
+    intro: 'Night falls on the gorges and the moon turns red. Red eyes watch from the forest, and the monkeys scream. Take the ranger jeep and drive with the lights off. The LOUGAROU, the werewolf of island legend, hunts here.',
+    boss: { form: 'lougarou', name: 'LOUGAROU', title: 'THE LOUGAROU HOWLS AT THE BLOOD MOON!', death: 'LOUGAROU DECAPITATED!', hp: 52, minion: 'monkey', proj: 'bone' } },
+  { id: 14, name: 'The Citadel', sub: 'Fort Adelaide above Port Louis - the final battle', bg: 'bg14', length: 3800, speed: 490, terrain: 'climb', gaps: 0.08,
+    ground: 'citadel', amb: 'citadel', fog: 'rgba(255,60,40,0.16)', tint: 'rgba(30,0,10,0.22)',
+    enemies: { walker: 4, brute: 3, crawler: 2, sprinter: 4, tank: 3, helmet: 3, bloater: 2, spitter: 3, flyer: 3, leaper: 3, boulder: 2 },
+    outfit: 'soldier', obstacles: ['cannon', 'crate', 'barrel', 'arch', 'cannonballs'], vehicle: 'armour',
+    event: { at: 0.45, kind: 'horde', types: ['brute', 'tank', 'helmet', 'sprinter', 'spitter', 'bloater'], n: 20, text: 'THE KING\'S ARMY!' },
+    intro: 'It ends where it began. Port Louis is burning and a storm spins over the old Citadel. Every dead soldier of the fort has risen to guard their master. Climb the hill, take the armoured truck, and cut the head off the ZOMBI KING. Mauritius is counting on you, Bojo.',
+    boss: { form: 'king', name: 'THE ZOMBI KING', title: 'THE ZOMBI KING TAKES HIS THRONE!', death: 'THE ZOMBI KING IS DECAPITATED!', hp: 60, minion: 'brute', minions: ['brute', 'sprinter', 'helmet', 'spitter'], proj: 'fire',
+      revive: { hp: 24, title: 'THE ZOMBI KING WILL NOT DIE!', name: 'THE ZOMBI KING - UNDYING' } } }
 ];
 
 // Unlockable hero outfits. Colours tint the existing cartoon puppet; no new photo art.
@@ -71,7 +116,7 @@ window.ZR_OUTFITS = [
     polo: '#1f8f6a', poloD: '#146a4c', poloL: '#f2d24a', jean: ['#3d6da8', '#2a4a7a'], tag: 'dodo' },
   { id: 'sega', name: 'SEGA DANCER', how: 'Finish 3 daily challenges (lifetime).', unlock: { type: 'challenges', n: 3 },
     polo: '#c41a3a', poloD: '#8a1028', poloL: '#ffd23a', jean: ['#1a1a1a', '#111111'], tag: 'sega' },
-  { id: 'army', name: 'COMMANDO', how: 'Clear all 8 levels.', unlock: { type: 'level', id: 8 },
+  { id: 'army', name: 'COMMANDO', how: 'Clear all 14 levels.', unlock: { type: 'level', id: 14 },
     polo: '#3d4a32', poloD: '#2a3222', poloL: '#6a7a4a', jean: ['#3a3d32', '#2a2c26'], tag: 'army' },
   { id: 'gold', name: 'GOLDEN BOJO', how: 'Bank 1,500 Rs, or grab 500 Rs in one run.', unlock: { type: 'coins', n: 1500 },
     polo: '#d4a017', poloD: '#8a6a10', poloL: '#ffe07a', jean: ['#c9a03a', '#8a7018'], tag: 'gold' }
@@ -83,5 +128,7 @@ window.ZR_VEHICLES = {
   jetski:  { id: 'jetski',  name: 'JET-SKI',   hp: 5, time: 15, speed: 1.34, rockets: 7, label: 'JET-SKI' },
   quad:    { id: 'quad',    name: 'QUAD',      hp: 5, time: 15, speed: 1.26, rockets: 7, label: 'QUAD' },
   boat:    { id: 'boat',    name: 'SPEEDBOAT', hp: 6, time: 16, speed: 1.30, rockets: 8, label: 'SPEEDBOAT' },
-  tractor: { id: 'tractor', name: 'TRACTOR',   hp: 8, time: 18, speed: 1.14, rockets: 6, label: 'TRACTOR' }
+  tractor: { id: 'tractor', name: 'TRACTOR',   hp: 8, time: 18, speed: 1.14, rockets: 6, label: 'TRACTOR' },
+  moto:    { id: 'moto',    name: 'MOTO',      hp: 4, time: 15, speed: 1.40, rockets: 7, label: 'MOTO' },
+  armour:  { id: 'armour',  name: 'ARMOURED TRUCK', hp: 10, time: 20, speed: 1.16, rockets: 10, label: 'ARMOUR' }
 };

@@ -218,6 +218,11 @@
     if (t === 'monkey') return monkey(c, z, opt);
     if (t === 'fish') return fish(c, z, opt);
     if (t === 'flyer') return flyer(c, z, opt);
+    if (t === 'dog') return dog(c, z, opt);
+    if (t === 'crab') return crab(c, z, opt);
+    if (t === 'deer') return deer(c, z, opt);
+    if (t === 'eel') return eel(c, z, opt);
+    if (t === 'bird') return bird(c, z, opt);
     var human = z.tr !== undefined ? 1 - Math.min(1, z.tr) : 0; // 1 = fully human (turner before turning)
     var sc = z.scale || (t === 'brute' ? 1.32 : t === 'boss' ? 2.3 : t === 'tank' ? 1.5 : t === 'bloater' ? 1.28 : t === 'sprinter' ? 0.92 : 1);
     var o = z.outfit, skin = z.skin;
@@ -507,7 +512,127 @@
     c.restore();
   }
 
-  // ---------------- OBSTACLES ----------------
+
+  function dog(c, z, opt) {
+    opt = opt || {};
+    var ph = z.phase || 0, run = Math.sin(ph * 10);
+    c.save();
+    if (z.dead || z.headless) c.globalAlpha = 0.85;
+    c.fillStyle = '#5a3a22'; c.strokeStyle = OUT; c.lineWidth = 3;
+    // body
+    c.beginPath(); c.ellipse(4, -22, 26, 14, -0.15, 0, TAU); c.fill(); c.stroke();
+    // legs
+    c.lineWidth = 4; c.lineCap = 'round';
+    [[-10, -12, -16 + run * 8, 0], [6, -12, 2 + run * 8, 0], [-2, -12, 4 - run * 8, 0], [14, -12, 20 - run * 8, 0]].forEach(function (L) {
+      c.beginPath(); c.moveTo(L[0], L[1]); c.lineTo(L[2], L[3]); c.stroke();
+    });
+    // tail
+    c.beginPath(); c.moveTo(26, -26); c.quadraticCurveTo(36, -40 - run * 4, 30, -48); c.stroke();
+    // neck + head
+    if (!z.headless && !opt.noHead) {
+      c.fillStyle = '#6a4428';
+      c.beginPath(); c.ellipse(-22, -40, 14, 12, -0.3, 0, TAU); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(-32, -34, 10, 7, -0.2, 0, TAU); c.fill(); c.stroke(); // snout
+      c.fillStyle = '#1a1210'; c.beginPath(); c.arc(-36, -34, 2.2, 0, TAU); c.fill();
+      c.fillStyle = z.tr > 0.5 || true ? '#c8e85a' : '#2a1a10'; c.beginPath(); c.ellipse(-26, -44, 3, 3.5, 0, 0, TAU); c.fill();
+      c.fillStyle = '#3a2418'; // ear
+      c.beginPath(); c.moveTo(-16, -48); c.lineTo(-10, -62); c.lineTo(-8, -46); c.closePath(); c.fill(); c.stroke();
+      if (true) { c.fillStyle = '#fff'; c.beginPath(); c.moveTo(-34, -30); c.lineTo(-30, -26); c.lineTo(-32, -26); c.fill(); } // fang hint
+    } else if (z.headless) { c.fillStyle = '#8a0b0b'; c.beginPath(); c.ellipse(-16, -36, 8, 6, 0, 0, TAU); c.fill(); }
+    c.restore();
+  }
+
+  function crab(c, z, opt) {
+    opt = opt || {};
+    var ph = z.phase || 0, sc = Math.sin(ph * 8);
+    c.save();
+    c.fillStyle = '#c44a2a'; c.strokeStyle = OUT; c.lineWidth = 3;
+    c.beginPath(); c.ellipse(0, -14, 18, 10, 0, 0, TAU); c.fill(); c.stroke();
+    // legs
+    c.lineWidth = 3;
+    for (var s = -1; s <= 1; s += 2) for (var i = 0; i < 3; i++) {
+      var a = s * (0.4 + i * 0.35), len = 16;
+      c.beginPath(); c.moveTo(s * 12, -12); c.lineTo(s * 12 + Math.cos(a) * len, -2 + sc * 2 * s); c.stroke();
+    }
+    // claws
+    c.fillStyle = '#d85a32';
+    c.beginPath(); c.ellipse(-22, -20 + sc * 2, 8, 6, -0.4, 0, TAU); c.fill(); c.stroke();
+    c.beginPath(); c.ellipse(22, -20 - sc * 2, 8, 6, 0.4, 0, TAU); c.fill(); c.stroke();
+    if (!z.headless && !opt.noHead) {
+      c.fillStyle = '#f0e060'; c.beginPath(); c.arc(-6, -20, 2.4, 0, TAU); c.fill(); c.beginPath(); c.arc(6, -20, 2.4, 0, TAU); c.fill();
+      c.fillStyle = '#1a0a0a'; c.beginPath(); c.arc(-6, -20, 1.1, 0, TAU); c.fill(); c.beginPath(); c.arc(6, -20, 1.1, 0, TAU); c.fill();
+    }
+    c.restore();
+  }
+
+  function deer(c, z, opt) {
+    opt = opt || {};
+    var ph = z.phase || 0, run = Math.sin(ph * 8);
+    c.save();
+    c.fillStyle = '#8a5a30'; c.strokeStyle = OUT; c.lineWidth = 3;
+    c.beginPath(); c.ellipse(6, -48, 28, 16, -0.2, 0, TAU); c.fill(); c.stroke();
+    c.lineWidth = 4; c.lineCap = 'round';
+    [[-8, -36, -14 + run * 10, 0], [10, -36, 6 + run * 10, 0], [0, -36, 6 - run * 10, 0], [18, -36, 24 - run * 10, 0]].forEach(function (L) {
+      c.beginPath(); c.moveTo(L[0], L[1]); c.lineTo(L[2], L[3]); c.stroke();
+    });
+    c.lineWidth = 3;
+    c.beginPath(); c.moveTo(30, -52); c.quadraticCurveTo(42, -44, 38, -36); c.stroke(); // tail
+    if (!z.headless && !opt.noHead) {
+      c.fillStyle = '#9a6a3a';
+      c.beginPath(); c.ellipse(-22, -78, 12, 14, -0.2, 0, TAU); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(-32, -70, 8, 6, -0.3, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = '#f0e8c8'; c.beginPath(); c.ellipse(-32, -68, 4, 3, -0.3, 0, TAU); c.fill();
+      c.fillStyle = '#1a120c'; c.beginPath(); c.arc(-26, -80, 2, 0, TAU); c.fill();
+      // small antlers
+      c.strokeStyle = OUT; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(-18, -90); c.lineTo(-14, -112); c.lineTo(-8, -104); c.moveTo(-14, -112); c.lineTo(-20, -116);
+      c.moveTo(-26, -90); c.lineTo(-30, -112); c.lineTo(-36, -104); c.stroke();
+    } else if (z.headless) { c.fillStyle = '#8a0b0b'; c.beginPath(); c.ellipse(-16, -70, 8, 7, 0, 0, TAU); c.fill(); }
+    c.restore();
+  }
+
+  function eel(c, z, opt) {
+    opt = opt || {};
+    var ph = z.phase || 0;
+    c.save();
+    if (z.rot) c.rotate(z.rot);
+    c.strokeStyle = OUT; c.lineWidth = 11; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(28, -8);
+    for (var i = 1; i <= 8; i++) {
+      var u = i / 8, x = 28 - u * 56, y = -8 + Math.sin(ph * 4 + u * 5) * 8;
+      c.lineTo(x, y);
+    }
+    c.stroke();
+    c.strokeStyle = '#3a5a38'; c.lineWidth = 7; c.stroke();
+    if (!z.headless && !opt.noHead) {
+      c.fillStyle = '#4a6a40'; c.strokeStyle = OUT; c.lineWidth = 3;
+      c.beginPath(); c.ellipse(-26, -8 + Math.sin(ph * 4) * 2, 10, 7, 0, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = '#e8e050'; c.beginPath(); c.arc(-30, -10, 2, 0, TAU); c.fill();
+      c.fillStyle = '#c03020'; c.beginPath(); c.arc(-34, -6, 1.6, 0, TAU); c.fill();
+    } else if (z.headless) { c.fillStyle = '#8a0b0b'; c.beginPath(); c.arc(-24, -8, 5, 0, TAU); c.fill(); }
+    c.restore();
+  }
+
+  function bird(c, z, opt) {
+    opt = opt || {};
+    var ph = z.phase || 0, flap = Math.sin(ph * 9) * 0.7;
+    c.save();
+    if (z.rot) c.rotate(z.rot);
+    c.fillStyle = '#e8a020'; c.strokeStyle = OUT; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(0, -6); c.quadraticCurveTo(-28, -16 + flap * 22, -52, -4 + flap * 30); c.quadraticCurveTo(-22, 2, 0, 4); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(0, -6); c.quadraticCurveTo(26, -20 - flap * 22, 56, -6 - flap * 30); c.quadraticCurveTo(22, 2, 0, 4); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#f0d0a0'; c.beginPath(); c.ellipse(4, 2, 13, 8, 0.15, 0, TAU); c.fill(); c.stroke();
+    // long tropicbird tail
+    c.beginPath(); c.moveTo(14, 0); c.lineTo(40, -16); c.lineTo(36, 2); c.closePath(); c.fill(); c.stroke();
+    if (!z.headless && !opt.noHead) {
+      c.fillStyle = '#f4e8d0'; c.beginPath(); c.ellipse(-12, -2, 7, 6, 0, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = '#e04020'; c.beginPath(); c.moveTo(-18, 0); c.lineTo(-28, 3); c.lineTo(-18, 5); c.closePath(); c.fill();
+      c.fillStyle = '#1a0a0a'; c.beginPath(); c.arc(-14, -3, 1.5, 0, TAU); c.fill();
+    } else if (z.headless) { c.fillStyle = '#8a0b0b'; c.beginPath(); c.ellipse(-10, -2, 5, 4, 0, 0, TAU); c.fill(); }
+    c.restore();
+  }
+
+    // ---------------- OBSTACLES ----------------
   // each: w, h (hitbox from ground), high (overhead: hitbox y from -h2 to -h)
   function flyer(c, z, opt) {
     opt = opt || {};
@@ -808,6 +933,35 @@
       case 'palms':
         spacing = 210; i0 = Math.floor(off / spacing) - 1; i1 = i0 + Math.ceil(viewW / spacing) + 3;
         for (i = i0; i < i1; i++) { if (hash(i + 5) < 0.35) continue; palm(c, i * spacing - off + hash(i) * 80, baseY, 150 + hash(i + 2) * 90, 1 + hash(i + 9) * 0.3, Math.sin(t * 1.2 + i) * 6, tone); }
+        break;
+
+      case 'harbour': // Mahebourg waterfront: colonial facades and pirogues, not the Caudan signs
+        spacing = 170; i0 = Math.floor(off / spacing) - 1; i1 = i0 + Math.ceil(viewW / spacing) + 3;
+        for (i = i0; i < i1; i++) {
+          var hx = i * spacing - off, hr = hash(i), hh = 80 + hr * 70, hw = 120 + hash(i + 7) * 24;
+          if (hash(i + 21) < 0.22) continue;
+          var hcols = ['#c8b898', '#d0a070', '#8aa0a8', '#c07060', '#d8c8a8'];
+          var hb = hcols[Math.floor(hash(i + 3) * hcols.length)];
+          c.fillStyle = mix(hb, tone || '#1a0a1e', 0.4); c.fillRect(hx, baseY - hh, hw, hh);
+          c.fillStyle = mix('#5a3a2a', '#000000', 0.2);
+          c.beginPath(); c.moveTo(hx - 8, baseY - hh); c.lineTo(hx + hw / 2, baseY - hh - 28); c.lineTo(hx + hw + 8, baseY - hh); c.fill();
+          for (var wy = baseY - hh + 16; wy < baseY - 24; wy += 28) for (var wx = hx + 12; wx < hx + hw - 16; wx += 26) {
+            c.fillStyle = hash(wx * 0.4 + wy) < 0.3 ? '#ffd080' : 'rgba(20,10,20,0.5)'; c.fillRect(wx, wy, 12, 16);
+          }
+          if (i % 7 === 3) {
+            c.fillStyle = '#1a1218'; c.fillRect(hx + 16, baseY - hh - 40, 100, 30);
+            c.fillStyle = '#ffe7a8'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center';
+            c.fillText(hash(i) > 0.5 ? 'MAHEBOURG' : 'ILE AUX AIGRETTES', hx + 66, baseY - hh - 20);
+          }
+        }
+        // beached pirogues
+        spacing = 280; i0 = Math.floor(off / spacing) - 1; i1 = i0 + Math.ceil(viewW / spacing) + 2;
+        for (i = i0; i < i1; i++) {
+          if (hash(i + 9) < 0.4) continue;
+          var bx = i * spacing - off + 40;
+          c.fillStyle = mix('#6a3a28', tone || '#1a0a1e', 0.3); c.strokeStyle = '#14100e'; c.lineWidth = 3;
+          c.beginPath(); c.ellipse(bx, baseY - 8, 50, 12, 0, 0, TAU); c.fill(); c.stroke();
+        }
         break;
       case 'trees': // Chamarel forest trunks & vines
         spacing = 120; i0 = Math.floor(off / spacing) - 1; i1 = i0 + Math.ceil(viewW / spacing) + 3;

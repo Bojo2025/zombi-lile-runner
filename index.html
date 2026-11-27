@@ -8,8 +8,11 @@
 <meta name="theme-color" content="#0b0507">
 <title>ZOMBI LILE RUNNER</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+
 </head>
 <body>
+<div id="stage">
 <canvas id="game"></canvas>
 
 <!-- HUD buttons -->
@@ -33,6 +36,7 @@
     <div id="bestLine" class="best"></div>
     <div id="dailyLine" class="best"></div>
   </div>
+  <div class="credit"><div class="dev">Developed by Mr Boyjonauth Kevin</div><div class="studio"><img class="bslogo" alt="Bojo Solutions logo"><span>Bojo Solutions</span></div></div>
 </div>
 
 <!-- Level select -->
@@ -113,7 +117,9 @@
   <button id="btnVicAgain" class="big">RUN AGAIN</button>
 </div>
 
-<!-- Rotate hint -->
+</div><!-- /stage -->
+
+<!-- Rotate hint (full viewport, not letterboxed) -->
 <div id="rotate" class="hidden">
   <div class="phone"></div>
   <p>Turn your phone sideways for the best run</p>

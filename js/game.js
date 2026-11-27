@@ -13,7 +13,7 @@
   window.ZR_ADS = window.ZR_ADS || { showInterstitial: function (done) { if (done) done(); }, showRewarded: function (cb) { if (cb) cb(); } };
   function showAdThen(done) { var called = false; function go() { if (called) return; called = true; done(); } try { window.ZR_ADS.showInterstitial(go); } catch (e) { go(); } }
   // difficulty index: identical to idx for levels 1-9, grows at half rate after that so 10-14 stay fair
-  function dIdx(idx) { return idx <= 8 ? idx : 8 + (idx - 8) * 0.5; }
+  function dIdx(idx) { return idx; }
   var store = { get: function (k, d) { try { var v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 
   // ---------- RNG ----------
@@ -88,7 +88,7 @@
     unlockOutfits();
   }
   // Play Store plan: levels 1-5 are open from the start; levels 6-14 ALL open together once levels 1-5 are all cleared.
-  var FREE_LEVELS = 5;
+  var FREE_LEVELS = 4;
   function freeLevelsCleared() { for (var k = 1; k <= FREE_LEVELS; k++) if (!G.done[k]) return false; return true; }
   function levelUnlocked(n) { return n <= FREE_LEVELS || freeLevelsCleared() || !!G.done[n]; }
   function outfitUnlocked(o) {
@@ -136,13 +136,36 @@
     chalTotal: store.get('zrChalTotal', 0), runCoinsMax: store.get('zrRunCoinsMax', 0) };
   window.__zr = G;
 
+  function cssInset(name) {
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
+  }
   function resize() {
-    var iw = window.innerWidth, ih = window.innerHeight;
+    // Fixed 16:9 world (960x540). Scale uniformly and letterbox inside the
+    // safe-area box so the game never stretches on tall or wide phones.
+    var vv = window.visualViewport;
+    var iw = vv ? vv.width : window.innerWidth;
+    var ih = vv ? vv.height : window.innerHeight;
+    var ox = vv ? vv.offsetLeft : 0;
+    var oy = vv ? vv.offsetTop : 0;
+    var sl = cssInset('--sal'), sr = cssInset('--sar'), st = cssInset('--sat'), sb = cssInset('--sab');
+    W = 960; H = VH;
+    var availW = Math.max(1, iw - sl - sr);
+    var availH = Math.max(1, ih - st - sb);
+    SC = Math.min(availW / W, availH / H);
+    var dispW = W * SC, dispH = H * SC;
+    var left = ox + sl + (availW - dispW) / 2;
+    var top = oy + st + (availH - dispH) / 2;
     DPR = Math.min(window.devicePixelRatio || 1, 2);
-    if (iw * ih * DPR * DPR > 2560 * 1440) DPR = Math.sqrt(2560 * 1440 / (iw * ih));
-    SC = Math.min(ih / VH, iw / 720); W = iw / SC; H = ih / SC;
-    cv.width = Math.round(iw * DPR); cv.height = Math.round(ih * DPR);
-    cv.style.width = iw + 'px'; cv.style.height = ih + 'px';
+    if (W * H * DPR * DPR > 2560 * 1440) DPR = Math.sqrt(2560 * 1440 / (W * H));
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    cv.style.width = '100%'; cv.style.height = '100%';
+    var stage = document.getElementById('stage');
+    if (stage) {
+      stage.style.left = left + 'px';
+      stage.style.top = top + 'px';
+      stage.style.width = dispW + 'px';
+      stage.style.height = dispH + 'px';
+    }
     checkRotate();
   }
   function checkRotate() {
@@ -193,8 +216,8 @@
     var eventX = L.event ? L.event.at * endX : -1;
     while (pos < endX - 260) {
       var prog = pos / endX, zone = band(prog);
-      var spacing = lerp(620, 380, prog) * (1 - dIdx(idx) * 0.025);
-      if (zone === 'intro') spacing *= 1.25;
+      var spacing = lerp(640, 360, prog) * (1 - dIdx(idx) * 0.032);
+      if (zone === 'intro') spacing *= (idx === 0 ? 1.55 : 1.25);
       if (zone === 'breath1' || zone === 'breath2' || zone === 'calm') spacing *= 1.45;
       if (zone === 'wave2' || zone === 'hard') spacing *= 0.82;
       if (zone === 'gauntlet') spacing *= 0.55;
@@ -222,10 +245,12 @@
         pos += spacing * 0.8; continue;
       }
       var enemyChance = zone === 'breath1' || zone === 'breath2' || zone === 'calm' ? 0.32 : zone === 'gauntlet' ? 0.72 : zone === 'intro' ? 0.5 : 0.58;
+        enemyChance = Math.min(0.84, enemyChance + idx * 0.016);
       if (r < enemyChance) {
         var type = pickEnemy(zone === 'hard' || zone === 'gauntlet');
         var grp = 1;
-        if ((type === 'walker' || type === 'sprinter' || type === 'crawler') && rnd() < 0.22 + prog * 0.28) grp = Math.floor(R(2, zone === 'gauntlet' ? 5 : 4));
+        if ((type === 'walker' || type === 'sprinter' || type === 'crawler') && rnd() < 0.14 + prog * 0.28 + idx * 0.02) grp = Math.floor(R(2, zone === 'gauntlet' ? 5 : 4));
+        if (idx === 0 && zone === 'intro') grp = 1;
         for (var n = 0; n < grp; n++) ents.push(makeEnemy(type, pos + n * 75, L, idx));
         if (rnd() < 0.3) coinLine(pick, pos - 220, 4, -60);
         pos += (grp - 1) * 75;
@@ -275,6 +300,11 @@
       e.vx = -R(50, 90); e.state = 'fly'; e.flyer = (L.amb === 'forest' || L.amb === 'mountain' || L.amb === 'night' || L.amb === 'lake' || L.amb === 'falls' || L.amb === 'citadel') ? 'bat' : 'gull';
       e.baseH = R(140, 190); e.y = GROUND - e.baseH;
     }
+    if (type === 'dog') { e.vx = -R(90, 150); }
+    if (type === 'crab') { e.vx = -R(45, 85); e.sidestep = 1; }
+    if (type === 'deer') { e.vx = -R(70, 120); e.leapCd = R(0.7, 1.8); }
+    if (type === 'eel') { e.vx = -R(55, 95); }
+    if (type === 'bird') { e.vx = -R(70, 120); e.state = 'fly'; e.baseH = R(150, 220); e.y = GROUND - e.baseH; }
     return e;
   }
 
@@ -353,6 +383,7 @@
   function updateBestLine() { $('bestLine').textContent = G.best ? 'BEST SCORE ' + G.best + '   ·   BANK Rs ' + (G.bank || 0) : (G.bank ? 'BANK Rs ' + G.bank : ''); }
 
   // ---------- HERO ACTIONS ----------
+  var SLIDE_DUR = 0.62 * 1.70; // longer slide so the low hitbox lasts under wide overhead obstacles
   function jump() {
     var h = G.hero; if (G.mode !== 'play') return;
     if (h.slideT > 0) h.slideT = 0;
@@ -362,7 +393,7 @@
   function release() { if (G.hero) G.hero.hold = false; }
   function slide() {
     var h = G.hero; if (G.mode !== 'play') return;
-    if (h.grounded) { if (h.slideT <= 0) AU.sfx('slide'); h.slideT = 0.62; dust(h.x, h.y, 8); }
+    if (h.grounded) { if (h.slideT <= 0) AU.sfx('slide'); h.slideT = SLIDE_DUR; dust(h.x, h.y, 8); }
     else { h.vy = Math.max(h.vy, 1350); h.queuedSlide = true; }
   }
   function slash() {
@@ -375,7 +406,7 @@
     doSlash();
   }
   function reach() { return 150 + (G.power.gato > 0 ? 80 : 0) + (G.power.bigSabre > 0 ? 70 : 0); }
-  function canHit(e) { return e.alive && (e.tr === undefined || e.tr >= 1 || e.type === 'fish' || e.type === 'monkey' || e.type === 'flyer') && e.state !== 'perch' && e.state !== 'swim' && e.state !== 'perchJ' && e.state !== 'wait' && !(e.state === 'climb' && e.climb < 0.5); }
+  function canHit(e) { return e.alive && (e.tr === undefined || e.tr >= 1 || e.type === 'fish' || e.type === 'monkey' || e.type === 'flyer' || e.type === 'bird') && e.state !== 'perch' && e.state !== 'swim' && e.state !== 'perchJ' && e.state !== 'wait' && !(e.state === 'climb' && e.climb < 0.5); }
   function ebox(e) {
     var x = e.x, y = e.y;
     switch (e.type) {
@@ -387,6 +418,11 @@
       case 'fish': return [x - 28, y - 18, x + 30, y + 18];
       case 'boulder': return [x - 30, y - 60, x + 30, y];
       case 'flyer': return [x - 34, y - 22, x + 34, y + 16];
+      case 'bird': return [x - 30, y - 20, x + 32, y + 14];
+      case 'dog': return [x - 32, y - 58, x + 34, y];
+      case 'crab': return [x - 26, y - 26, x + 26, y];
+      case 'deer': return [x - 30, y - 96, x + 32, y];
+      case 'eel': return [x - 40, y - 28, x + 38, y + 4];
       case 'helmet': return [x - 28, y - 160, x + 26, y];
       case 'sprinter': return [x - 22, y - 148, x + 20, y];
       case 'boss': return bossBox(e);
@@ -403,6 +439,11 @@
       case 'fish': return [e.x - 16, e.y];
       case 'boulder': return [e.x, e.y - 30];
       case 'flyer': return [e.x - 12, e.y - 8];
+      case 'bird': return [e.x - 10, e.y - 6];
+      case 'dog': return [e.x - 16, e.y - 48];
+      case 'crab': return [e.x, e.y - 16];
+      case 'deer': return [e.x - 10, e.y - 88];
+      case 'eel': return [e.x - 22, e.y - 10];
       case 'helmet': return [e.x - 14, e.y - 142];
       case 'boss': return bossHead(e);
       default: return [e.x - 14, e.y - 136];
@@ -410,6 +451,9 @@
   }
   function isHumanoid(e) {
     return { walker: 1, brute: 1, turner: 1, boss: 1, sprinter: 1, tank: 1, leaper: 1, spitter: 1, helmet: 1, bloater: 1 }[e.type];
+  }
+  function isAnimal(e) {
+    return { monkey: 1, fish: 1, dog: 1, crab: 1, deer: 1, eel: 1, bird: 1, flyer: 1 }[e.type];
   }
   function slashBox() {
     var h = G.hero, extra = G.power.bigSabre > 0 ? 36 : 0;
@@ -425,6 +469,14 @@
       var b = ebox(e);
       if (b[0] < rx1 && b[2] > rx0 && b[1] < ry1 && b[3] > ry0) { var d = b[0] - h.x; if (d < bd) { bd = d; best = e; } }
     });
+    if (!best) {
+      G.ents.forEach(function (e) {
+        if (!canHit(e) || !isAnimal(e)) return;
+        var b = ebox(e);
+        if (b[0] < rx1 && b[2] > rx0 && b[1] < h.y + 8 && b[3] > h.y - 90) { var d = b[0] - h.x; if (d < bd) { bd = d; best = e; } }
+      });
+    }
+    if (best && isAnimal(best) && !isHumanoid(best)) { decap(best, 'CUT!', 80, false, 'sabre'); return; }
     if (!best || resistChop(best, false)) return;
     chestCut(best);
   }
@@ -766,7 +818,7 @@
       else h.y = gy;
     } else if (gy !== null && h.vy >= 0 && h.y >= gy && h.prevY <= gy + 26) {
       h.y = gy; h.vy = 0; h.grounded = true; h.jumps = 0; h.flipT = 0; AU.sfx('land'); dust(h.x, h.y, 5);
-      if (h.queuedSlide) { h.queuedSlide = false; h.slideT = 0.62; AU.sfx('slide'); }
+      if (h.queuedSlide) { h.queuedSlide = false; h.slideT = SLIDE_DUR; AU.sfx('slide'); }
     }
     if (h.grounded) h.airT = 0;
     var ref = baseGround(h.x);
@@ -837,7 +889,7 @@
     G.ents.forEach(function (e) {
       var dx = e.x - h.x;
       if (dx > W + 300) return;
-      e.phase += dt * (e.type === 'monkey' ? 9 : e.type === 'crawler' ? 4 : e.panic ? 9 : 3.2);
+      e.phase += dt * (e.type === 'monkey' ? 9 : e.type === 'crawler' || e.type === 'crab' || e.type === 'eel' ? 6 : e.type === 'dog' ? 8 : e.panic ? 9 : 3.2);
       if (e.state === 'dying') { e.dieT += dt; var sc = e.type === 'brute' ? 1.32 : 1; if (e.dieT < 0.7 && fx() < 0.7) G.parts.push({ k: 'blood', x: e.x - 6 * sc, y: e.y - 108 * sc, vx: R(-60, 120), vy: R(-520, -300), r: R(2.5, 5), life: 1, max: 1, col: '#c3141c' }); if (e.dieT > 0.9) e.state = 'corpse'; var gq = groundAt(e.x); if (gq !== null) e.y = gq; return; }
       if (e.state === 'corpse' || !e.alive) return;
       if (e.stag > 0) { e.stag -= dt; e.x += 70 * dt; }
@@ -867,6 +919,16 @@
             e.headTilt = e.tr > 0 && e.tr < 1 ? Math.sin(G.t * 40) * 0.2 : 0;
           }
           if (dx < W + 100 && e.stag <= 0) e.x += (isHumanStill(e) && e.tr > 0.3 ? 0 : e.vx) * dt;
+          if (e.type === 'deer' && e.stag <= 0) {
+            e.leapCd = (e.leapCd || 0) - dt;
+            if (e.leapCd <= 0 && dx < 480 && dx > 50) { leapAt(e, 0.75, 'idle'); e.leapCd = R(1.6, 2.6); }
+          }
+          if (e.type === 'crab' && e.stag <= 0) {
+            e.x += Math.sin((e.phase || 0) * 3) * 40 * dt;
+          }
+          if (e.type === 'eel' && e.stag <= 0) {
+            var ge = groundAt(e.x); if (ge !== null) e.y = ge - 6 - Math.abs(Math.sin((e.phase || 0) * 4)) * 10;
+          }
           if (e.type === 'leaper' && e.stag <= 0) {
             e.leapCd = (e.leapCd || 0) - dt;
             if (e.leapCd <= 0 && dx < 460 && dx > 40) { leapAt(e, 0.7, 'idle'); e.leapCd = R(1.4, 2.4); AU.sfx('moan'); }
@@ -882,7 +944,7 @@
           if (e.type === 'bloater' && dx < 150 && dx > -20 && !e.fuse) { e.fuse = true; e.fuseT = 0.55; popText(e.x, e.y - 200, 'BACK OFF!', '#ff9a3a', 0.7); }
           if (e.fuse) { e.fuseT -= dt; if (e.fuseT <= 0) { e.alive = false; explodeAt(e.x, e.y - 40, 180, true); return; } }
           if (e.type === 'fish' && e.state === 'flop') { e.flopT = (e.flopT || 0) + dt; e.y = (groundAt(e.x) || e.y) - 16 - Math.abs(Math.sin(e.flopT * 7)) * 22; e.rot = Math.sin(e.flopT * 7) * 0.5; }
-          else if (e.type !== 'flyer') { var g3 = groundAt(e.x); if (g3 !== null) e.y = g3; }
+          else if (e.type !== 'flyer' && e.type !== 'bird' && e.type !== 'eel') { var g3 = groundAt(e.x); if (g3 !== null) e.y = g3; }
       }
       if (!e.alive || isHumanStill(e) || e.type === 'turner') return;
       if (e.state === 'climb' && e.climb < 0.6) return;
@@ -892,7 +954,9 @@
           if (e.type === 'bloater') { e.alive = false; explodeAt(e.x, e.y - 40, 160, false); addKill(80, 'vehicle'); }
           else { decap(e, 'CRUSHED!', 80, false, 'vehicle'); }
           G.shake = Math.max(G.shake, 6);
-        } else if (h.vy > 0 && h.prevY <= b[1] + 22 && e.type !== 'fish' && e.type !== 'flyer') { h.vy = -720; h.jumps = 1; h.grounded = false; e.stag = 0.9; AU.sfx('stomp'); G.score += 10; popText(e.x, b[1] - 20, 'STAGGER', '#cfe8ff', 0.5); }
+        } else if (h.slideT > 0 && (e.type === 'crab' || e.type === 'eel' || e.type === 'fish')) {
+          decap(e, 'SLID!', 60, true, 'sabre');
+        } else if (h.vy > 0 && h.prevY <= b[1] + 22 && e.type !== 'fish' && e.type !== 'flyer' && e.type !== 'bird' && e.type !== 'eel') { h.vy = -720; h.jumps = 1; h.grounded = false; e.stag = 0.9; AU.sfx('stomp'); G.score += 10; popText(e.x, b[1] - 20, 'STAGGER', '#cfe8ff', 0.5); }
         else if (e.stag <= 0 || e.type === 'boulder') { hurt(e); e.stag = 0.8; if (e.type === 'boulder') { e.alive = false; e.dead = true; rocks(e.x, e.y - 30); } }
       }
     });
@@ -1192,7 +1256,7 @@
   function render() {
     cx.setTransform(1, 0, 0, 1, 0, 0);
     cx.fillStyle = '#000'; cx.fillRect(0, 0, cv.width, cv.height);
-    var k = SC * DPR; cx.setTransform(k, 0, 0, k, 0, 0);
+    var k = DPR; cx.setTransform(k, 0, 0, k, 0, 0);
     if (!G.L) { renderTitle(); return; }
     renderWorld();
     renderHud();
@@ -1207,7 +1271,7 @@
     }
   }
   var MID = { 1: ['city', 0.45, -6], 2: ['palms', 0.5, -40], 3: ['trees', 0.55, -10], 4: ['cliffs', 0.35, 40], 5: ['palms', 0.5, -40], 6: ['boats', 0.4, -70], 7: ['cane', 0.5, -14], 8: ['palms', 0.5, -40], 9: ['cliffs', 0.35, 40],
-    10: ['flags', 0.45, -40], 11: ['basalt', 0.45, -40], 12: ['palms', 0.5, -40], 13: ['trees', 0.55, -10], 14: ['ramparts', 0.4, 30] };
+    10: ['flags', 0.45, -40], 11: ['basalt', 0.45, -40], 12: ['harbour', 0.5, -8], 13: ['trees', 0.55, -10], 14: ['ramparts', 0.4, 30] };
   var TONE = { 1: '#2a1410', 2: '#0f2a1c', 3: '#0b180d', 4: '#221a2a', 5: '#2a2a14', 6: null, 7: '#3a4a16', 8: '#14060a', 9: '#1a1428',
     10: '#0a1a16', 11: '#0a1418', 12: '#1a0a1e', 13: '#04080a', 14: '#160a10' };
   var WATERC = { 1: ['#2a4a5a', '#0e1e2a'], 2: ['#46c8c0', '#0d5a6a'], 5: ['#5ad0d0', '#106070'], 6: ['#24507a', '#06142a'], 8: ['#7a3048', '#2a0a18'],
@@ -1546,12 +1610,13 @@
     e.preventDefault();
     if (G.mode === 'title') { G.titleT = Math.max(G.titleT, 2.7); return; }
     if (G.mode !== 'play' || DEMO) return;
-    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY, t: performance.now(), done: false, side: e.clientX < window.innerWidth / 2 ? 'L' : 'R' };
+    var br = cv.getBoundingClientRect();
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY, t: performance.now(), done: false, side: e.clientX < br.left + br.width / 2 ? 'L' : 'R' };
     try { cv.setPointerCapture(e.pointerId); } catch (er) {}
   }, { passive: false });
   cv.addEventListener('pointermove', function (e) {
     var p = ptrs[e.pointerId]; if (!p || p.done) return;
-    var dy = e.clientY - p.y, dx = e.clientX - p.x, th = Math.max(26, window.innerHeight * 0.05);
+    var dy = e.clientY - p.y, dx = e.clientX - p.x, th = Math.max(26, cv.getBoundingClientRect().height * 0.05);
     if (Math.abs(dy) > th && Math.abs(dy) > Math.abs(dx)) { p.done = true; if (dy > 0) slide(); else { jump(); p.held = true; } }
   });
   function ptrEnd(e) { var p = ptrs[e.pointerId]; if (p && !p.done) fireTap(p); if (p && p.held) release(); delete ptrs[e.pointerId]; }
@@ -1576,6 +1641,10 @@
   document.addEventListener('contextmenu', function (e) { if (e.target === cv) e.preventDefault(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) { if (G.mode === 'play' && !DEMO) pauseGame(true); AU.suspend(); } else if (G.mode !== 'paused') AU.resume(); });
   window.addEventListener('resize', resize); window.addEventListener('orientationchange', function () { setTimeout(resize, 250); });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resize);
+    window.visualViewport.addEventListener('scroll', resize);
+  }
 
   // ---------- MENUS ----------
   function click(id, f) { $(id).addEventListener('click', function (e) { e.stopPropagation(); AU.init(); firstGesture(); AU.sfx('click'); f(); }); }
@@ -1668,7 +1737,7 @@
     giveWeapon: giveWeapon, mountVehicle: mountVehicle, fireGun: fireGun, openChallenges: openChallenges, openOutfits: openOutfits, currentFit: currentFit,
     gameOver: function () { G.mode = 'play'; G.hearts = 1; G.hero.invuln = 0; hurt('test'); },
     setOutfit: function (id) { G.fitId = id; store.set('zrFit', id); },
-    spawnEnemy: function (type, off) { var e = makeEnemy(type, G.hero.x + (off || 280), G.L, G.idx); if (e.state === 'perch' || e.state === 'swim' || e.state === 'wait' || e.state === 'climb' || e.state === 'perchJ') e.state = 'idle'; if (e.type === 'flyer') { e.state = 'fly'; e.y = G.hero.y - 160; } if (e.type === 'monkey') e.tr = 1; if (e.type === 'fish') e.tr = 1; G.ents.push(e); return e.type; },
+    spawnEnemy: function (type, off) { var e = makeEnemy(type, G.hero.x + (off || 280), G.L, G.idx); if (e.state === 'perch' || e.state === 'swim' || e.state === 'wait' || e.state === 'climb' || e.state === 'perchJ') e.state = 'idle'; if (e.type === 'flyer' || e.type === 'bird') { e.state = 'fly'; e.y = G.hero.y - 160; } if (e.type === 'monkey') e.tr = 1; if (e.type === 'fish') e.tr = 1; G.ents.push(e); return e.type; },
     teleport: function (frac) { var h = G.hero; h.x = G.endX * frac; if (!segAt(h.x)) h.x = (nextSeg(h.x) || { x0: h.x }).x0 + 50; h.y = groundAt(h.x) || baseGround(h.x); h.grounded = true; h.vy = 0; G.camX = h.x - W * 0.27; G.camY = baseGround(h.x) - GROUND; G.ents.forEach(function (e) { if (e.x < h.x + 200) { e.dead = true; e.alive = false; } }); G.obs = G.obs.filter(function (o) { return o.x > h.x + 300; }); } };
 
   resize();
